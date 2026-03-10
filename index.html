@@ -183,6 +183,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--n9);color:var(--tx);displ
 .csw:hover{transform:scale(1.1)}
 .csw.selected{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.2)}
 .trmta{min-height:120px;font-size:12px;font-family:'DM Mono',monospace;line-height:1.7}
+
+/* P&L styles */
+.pl-sc-tab{padding:6px 16px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--b);color:var(--t2);transition:all .15s;user-select:none}
+.pl-sc-tab:hover{background:var(--n7);color:var(--tx)}
+.pl-sc-tab.active{background:var(--od);color:var(--orl);border-color:rgba(232,101,26,.3)}
+.pl-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.pl-table thead tr{background:var(--n7);border-bottom:1px solid var(--b)}
+.pl-table th{padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);white-space:nowrap}
+.pl-table tbody tr{border-bottom:1px solid var(--b);transition:background .1s}
+.pl-table tbody tr:hover{background:rgba(255,255,255,.02)}
+.pl-table tbody tr:last-child{border-bottom:none}
+.pl-table td{padding:8px 12px;vertical-align:middle}
+.pl-in{width:100%;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 8px;font-size:12.5px;color:var(--tx);font-family:'DM Sans',sans-serif;transition:border-color .15s;outline:none}
+.pl-in:hover{border-color:var(--b)}
+.pl-in:focus{border-color:var(--or);background:var(--n7)}
+.pl-sel{width:100%;background:var(--n7);border:1px solid var(--b);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none}
+.pl-num{font-family:'DM Mono',monospace;font-size:12px}
+.pl-cost{color:var(--t2)}
+.pl-sell{color:var(--or);font-weight:600}
+.pl-type-hw{color:#60a5fa}.pl-type-sw{color:#a78bfa}.pl-type-svc{color:#34d399}.pl-type-cl{color:#fb923c}
 </style>
 </head>
 <body>
@@ -266,11 +286,81 @@ body{font-family:'DM Sans',sans-serif;background:var(--n9);color:var(--tx);displ
     </div>
 
     <div class="view" id="view-pl">
-      <div class="ph"><div class="pey">Financiar</div><div class="ptitle">P&amp;L / Pricing</div></div>
-      <div class="csb"><div class="csi">&#128176;</div><div class="cst">Disponibil in Modul 3</div><div class="csd">Tabel costuri cu marja per linie, 3 scenarii, export Excel.</div><span class="csm">Modul 3</span></div>
+      <div class="ph">
+        <div class="phr">
+          <div><div class="pey">Financiar</div><div class="ptitle">P&amp;L / Pricing</div><div class="psub">Costuri, marje si scenarii de pret pentru oferta ta.</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+            <button class="btn bs" onclick="plImportDocs()">&#8595; Import din Documente</button>
+            <button class="btn bs" onclick="plAddRow()">+ Adauga linie</button>
+            <button class="btn bp" onclick="plExportXLSX()">&#8681; Export Excel</button>
+            <button class="btn bg" onclick="plSendToOffer()">&#8594; Trimite in Oferta</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scenarii tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-right:4px">Scenariu:</span>
+        <div class="pl-sc-tab active" id="plsc-0" onclick="plSetScenario(0)">Conservator</div>
+        <div class="pl-sc-tab" id="plsc-1" onclick="plSetScenario(1)">Recomandat</div>
+        <div class="pl-sc-tab" id="plsc-2" onclick="plSetScenario(2)">Agresiv</div>
+        <div style="margin-left:auto;display:flex;gap:16px">
+          <div style="font-size:12px;color:var(--t2)">Cost total: <span id="pl-total-cost" style="color:var(--tx);font-weight:600;font-family:'DM Mono',monospace">0.00</span></div>
+          <div style="font-size:12px;color:var(--t2)">Pret vanzare: <span id="pl-total-sell" style="color:var(--or);font-weight:700;font-family:'DM Mono',monospace">0.00</span></div>
+          <div style="font-size:12px;color:var(--t2)">Marja: <span id="pl-total-margin" style="color:var(--gr);font-weight:700;font-family:'DM Mono',monospace">0%</span></div>
+        </div>
+      </div>
+
+      <!-- Tabel P&L -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="overflow-x:auto">
+          <table class="pl-table" id="pl-table">
+            <thead>
+              <tr>
+                <th style="width:36px">#</th>
+                <th style="min-width:220px">Denumire</th>
+                <th style="width:100px">Tip</th>
+                <th style="width:70px">Cant.</th>
+                <th style="width:110px">Cost unit.</th>
+                <th style="width:110px">Cost total</th>
+                <th style="width:90px">Marja C%</th>
+                <th style="width:90px">Marja R%</th>
+                <th style="width:90px">Marja A%</th>
+                <th style="width:110px">Pret vanzare</th>
+                <th style="width:36px"></th>
+              </tr>
+            </thead>
+            <tbody id="pl-tbody"></tbody>
+          </table>
+        </div>
+        <div id="pl-empty" style="padding:48px;text-align:center;color:var(--t3)">
+          <div style="font-size:32px;margin-bottom:8px">&#128176;</div>
+          <div style="font-size:14px;font-weight:600;color:var(--t2);margin-bottom:4px">Nicio linie adaugata</div>
+          <div style="font-size:12px">Importa din Documente sau adauga manual</div>
+        </div>
+      </div>
+
+      <!-- Sumar scenarii -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px">
+        <div class="card" id="pl-sum-0">
+          <div class="ct" style="margin-bottom:12px"><div class="ctd" style="background:var(--t3)"></div>Conservator</div>
+          <div style="font-size:24px;font-weight:700;font-family:'Syne',sans-serif" id="pl-sum-sell-0">0.00 EUR</div>
+          <div style="font-size:12px;color:var(--t2);margin-top:4px">Marja medie: <span id="pl-sum-mg-0" style="color:var(--t2)">0%</span></div>
+        </div>
+        <div class="card" id="pl-sum-1" style="border-color:var(--or)">
+          <div class="ct" style="margin-bottom:12px"><div class="ctd"></div>Recomandat ★</div>
+          <div style="font-size:24px;font-weight:700;font-family:'Syne',sans-serif;color:var(--or)" id="pl-sum-sell-1">0.00 EUR</div>
+          <div style="font-size:12px;color:var(--t2);margin-top:4px">Marja medie: <span id="pl-sum-mg-1" style="color:var(--or)">0%</span></div>
+        </div>
+        <div class="card" id="pl-sum-2">
+          <div class="ct" style="margin-bottom:12px"><div class="ctd" style="background:var(--gr)"></div>Agresiv</div>
+          <div style="font-size:24px;font-weight:700;font-family:'Syne',sans-serif;color:var(--gr)" id="pl-sum-sell-2">0.00 EUR</div>
+          <div style="font-size:12px;color:var(--t2);margin-top:4px">Marja medie: <span id="pl-sum-mg-2" style="color:var(--gr)">0%</span></div>
+        </div>
+      </div>
     </div>
 
-    <div class="view" id="view-offer">
+<div class="view" id="view-offer">
       <div class="ph"><div class="pey">Generator</div><div class="ptitle">Generator Oferta</div></div>
       <div class="csb"><div class="csi">&#128202;</div><div class="cst">Disponibil in Modul 4</div><div class="csd">AI genereaza deck profesional navy.</div><span class="csm">Modul 4</span></div>
     </div>
@@ -608,7 +698,7 @@ function basicParse(text) {
 function aiExtract(doc, apiKey, model) {
   doc.status = 'ai-processing'; renderDocs();
   var prompt = 'Esti un expert in procesare documente B2B. Extrage TOATE produsele din acest quotation.\n\nDin textul de mai jos, produsele arata asa:\n001  4-6 weeks  [MIL-EM300-TH] Milesight EM300-TH ...  10  units  46.90  EUR  469.00\n002  03/06/2026  [DG-DR-FSA] Dragino DR-FSA ...  10  units  17.90  EUR  179.00\n003  4-6 weeks  [DG-LTC2-LS] Dragino LTC2 Node ...  10  units  54.90  EUR  549.00\nDHL Express Europe  1  units  29.90  EUR  29.90\n\nREGULI:\n1. Extrage TOATE liniile care au: descriere + cantitate + pret unitar + total\n2. unitPrice = pretul mic (46.90), NU totalul (469.00)\n3. Codul e in [brackets] - extrage fara paranteze\n4. Ignora: adrese, firme, IBAN, VAT, Total general, Payment term, Page\n5. Shipping/DHL se include si el\n6. qty = numarul de units (ex: 10)\n\nTEXT:\n' + doc.rawText.substring(0, 7000) + '\n\nReturneaza DOAR JSON valid, fara markdown:\n{"supplier":"","currency":"EUR","products":[{"name":"denumire fara cod","code":"COD sau gol","qty":10,"unitPrice":46.90,"notes":""}]}'
-  fetch('/api/claude', {
+  fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: model || 'claude-sonnet-4-20250514', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] })
@@ -835,7 +925,216 @@ function toast(type, msg) {
   toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3500);
 }
 
-window.addEventListener('load', function() { try { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(e) {} loadSets(); loadDocs(); });
+
+// ============================================================
+// MODUL 3 — P&L / PRICING
+// ============================================================
+var PL = { rows: [], scenario: 1 }; // scenario: 0=conservator,1=recomandat,2=agresiv
+
+var PL_TYPES = {
+  'hw': { label: 'Hardware', cls: 'pl-type-hw' },
+  'sw': { label: 'Licente', cls: 'pl-type-sw' },
+  'svc': { label: 'Servicii', cls: 'pl-type-svc' },
+  'cl': { label: 'Cloud', cls: 'pl-type-cl' }
+};
+
+function plDefaultMargins(type) {
+  var s = getSets();
+  var defs = { hw: [10,20,30], sw: [15,25,35], svc: [20,30,40], cl: [10,20,25] };
+  var base = defs[type] || [15,25,35];
+  // Override with settings if available
+  if (type === 'hw' && s.mEquipment) { var m = parseFloat(s.mEquipment)||20; base = [Math.max(5,m-10), m, Math.min(60,m+10)]; }
+  if (type === 'sw' && s.mProfessional) { var m = parseFloat(s.mProfessional)||25; base = [Math.max(5,m-10), m, Math.min(60,m+10)]; }
+  if (type === 'svc' && s.mManaged) { var m = parseFloat(s.mManaged)||30; base = [Math.max(5,m-10), m, Math.min(60,m+10)]; }
+  if (type === 'cl' && s.mCloud) { var m = parseFloat(s.mCloud)||20; base = [Math.max(5,m-10), m, Math.min(60,m+10)]; }
+  return base;
+}
+
+function plMakeRow(name, code, qty, costUnit, type) {
+  type = type || 'hw';
+  var margins = plDefaultMargins(type);
+  return { id: 'pl' + Date.now() + Math.random().toString(36).substr(2,4), name: name||'', code: code||'', qty: qty||1, costUnit: costUnit||0, type: type, margins: margins };
+}
+
+function plSellPrice(row, sc) {
+  var sc2 = sc !== undefined ? sc : PL.scenario;
+  var mg = parseFloat(row.margins[sc2]) || 0;
+  return row.costUnit * row.qty * (1 + mg / 100);
+}
+
+function plRenderRows() {
+  var tbody = document.getElementById('pl-tbody');
+  var empty = document.getElementById('pl-empty');
+  if (!tbody) return;
+  if (!PL.rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; plUpdateTotals(); return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = PL.rows.map(function(row, idx) {
+    var costTotal = (row.costUnit * row.qty).toFixed(2);
+    var sell = plSellPrice(row).toFixed(2);
+    var typeInfo = PL_TYPES[row.type] || PL_TYPES['hw'];
+    return '<tr data-id="' + row.id + '">' +
+      '<td style="color:var(--t3);font-family:'DM Mono',monospace;font-size:11px">' + (idx+1) + '</td>' +
+      '<td><input class="pl-in" value="' + esc(row.name) + '" onchange="plUpdateField('' + row.id + '','name',this.value)" placeholder="Denumire..."></td>' +
+      '<td><select class="pl-sel" onchange="plUpdateField('' + row.id + '','type',this.value)">' +
+        Object.keys(PL_TYPES).map(function(k) { return '<option value="' + k + '"' + (row.type===k?' selected':'') + '>' + PL_TYPES[k].label + '</option>'; }).join('') +
+      '</select></td>' +
+      '<td><input class="pl-in pl-num" type="number" min="1" value="' + row.qty + '" onchange="plUpdateField('' + row.id + '','qty',this.value)"></td>' +
+      '<td><input class="pl-in pl-num pl-cost" type="number" min="0" step="0.01" value="' + row.costUnit + '" onchange="plUpdateField('' + row.id + '','costUnit',this.value)"></td>' +
+      '<td class="pl-num pl-cost">' + costTotal + '</td>' +
+      '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[0] + '" onchange="plUpdateMargin('' + row.id + '',0,this.value)" style="color:var(--t2)"></td>' +
+      '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[1] + '" onchange="plUpdateMargin('' + row.id + '',1,this.value)" style="color:var(--or)"></td>' +
+      '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[2] + '" onchange="plUpdateMargin('' + row.id + '',2,this.value)" style="color:var(--gr)"></td>' +
+      '<td class="pl-num pl-sell" id="plsell-' + row.id + '">' + sell + '</td>' +
+      '<td><button class="btn bdan bsm" onclick="plDelRow('' + row.id + '')">✕</button></td>' +
+    '</tr>';
+  }).join('');
+  plUpdateTotals();
+}
+
+function plUpdateTotals() {
+  var totalCost = PL.rows.reduce(function(s,r) { return s + r.costUnit * r.qty; }, 0);
+  var sc = PL.scenario;
+  var totalSell = PL.rows.reduce(function(s,r) { return s + plSellPrice(r, sc); }, 0);
+  var mg = totalCost > 0 ? Math.round((totalSell - totalCost) / totalSell * 100) : 0;
+  var cur = (getSets().currency || 'EUR');
+  var fmt = function(v) { return v.toLocaleString('ro-RO', {minimumFractionDigits:2, maximumFractionDigits:2}); };
+  var el = function(id) { return document.getElementById(id); };
+  if (el('pl-total-cost')) el('pl-total-cost').textContent = fmt(totalCost) + ' ' + cur;
+  if (el('pl-total-sell')) el('pl-total-sell').textContent = fmt(totalSell) + ' ' + cur;
+  if (el('pl-total-margin')) el('pl-total-margin').textContent = mg + '%';
+  // Update sumar scenarii
+  [0,1,2].forEach(function(s2) {
+    var sell2 = PL.rows.reduce(function(sum, r) { return sum + plSellPrice(r, s2); }, 0);
+    var mg2 = totalCost > 0 ? Math.round((sell2 - totalCost) / sell2 * 100) : 0;
+    if (el('pl-sum-sell-' + s2)) el('pl-sum-sell-' + s2).textContent = fmt(sell2) + ' ' + cur;
+    if (el('pl-sum-mg-' + s2)) el('pl-sum-mg-' + s2).textContent = mg2 + '%';
+  });
+}
+
+function plUpdateField(id, field, val) {
+  var row = PL.rows.find(function(r) { return r.id === id; });
+  if (!row) return;
+  if (field === 'qty' || field === 'costUnit') row[field] = parseFloat(val) || 0;
+  else row[field] = val;
+  if (field === 'type') row.margins = plDefaultMargins(val);
+  plSavePL(); plRenderRows();
+}
+
+function plUpdateMargin(id, sc, val) {
+  var row = PL.rows.find(function(r) { return r.id === id; });
+  if (!row) return;
+  row.margins[sc] = parseFloat(val) || 0;
+  plSavePL(); plUpdateTotals();
+}
+
+function plDelRow(id) {
+  PL.rows = PL.rows.filter(function(r) { return r.id !== id; });
+  plSavePL(); plRenderRows();
+}
+
+function plAddRow() {
+  PL.rows.push(plMakeRow('Produs nou', '', 1, 0, 'hw'));
+  plSavePL(); plRenderRows();
+}
+
+function plSetScenario(sc) {
+  PL.scenario = sc;
+  [0,1,2].forEach(function(i) {
+    var el = document.getElementById('plsc-' + i);
+    if (el) el.classList.toggle('active', i === sc);
+  });
+  plUpdateTotals();
+}
+
+function plImportDocs() {
+  var q = [];
+  try { q = JSON.parse(localStorage.getItem('ofertapro_pl_q') || '[]'); } catch(e) {}
+  if (!q.length) {
+    // Try importing directly from APP.docs
+    APP.docs.forEach(function(doc) {
+      if (doc.status === 'ready' && doc.products && doc.products.length) {
+        doc.products.forEach(function(p) {
+          var type = doc.isServices ? 'svc' : 'hw';
+          PL.rows.push(plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, type));
+        });
+      }
+    });
+    if (PL.rows.length) { plSavePL(); plRenderRows(); toast('ok', PL.rows.length + ' linii importate din documente!'); }
+    else toast('warn', 'Niciun document disponibil. Apasa Trimite in P&L din tab Documente.');
+    return;
+  }
+  q.forEach(function(doc) {
+    doc.products.forEach(function(p) {
+      PL.rows.push(plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, 'hw'));
+    });
+  });
+  localStorage.removeItem('ofertapro_pl_q');
+  plSavePL(); plRenderRows();
+  toast('ok', PL.rows.length + ' linii importate!');
+}
+
+function plSendToOffer() {
+  var sc = PL.scenario;
+  var scNames = ['Conservator', 'Recomandat', 'Agresiv'];
+  var data = {
+    scenario: scNames[sc],
+    rows: PL.rows.map(function(r) {
+      return { name: r.name, code: r.code, qty: r.qty, costUnit: r.costUnit, sellPrice: plSellPrice(r, sc), margin: r.margins[sc], type: r.type };
+    }),
+    totalCost: PL.rows.reduce(function(s,r) { return s + r.costUnit*r.qty; }, 0),
+    totalSell: PL.rows.reduce(function(s,r) { return s + plSellPrice(r,sc); }, 0),
+    currency: getSets().currency || 'EUR'
+  };
+  localStorage.setItem('ofertapro_offer_pl', JSON.stringify(data));
+  toast('ok', 'Trimis in Generator Oferta (' + scNames[sc] + ')!');
+  nav('offer');
+}
+
+function plExportXLSX() {
+  if (!PL.rows.length) { toast('warn', 'Nicio linie in P&L'); return; }
+  var sc = PL.scenario;
+  var scNames = ['Conservator', 'Recomandat', 'Agresiv'];
+  var cur = getSets().currency || 'EUR';
+  var wb = XLSX.utils.book_new();
+
+  // Sheet 1: Summary
+  var sumData = [
+    ['OfertaPro — P&L Export'],
+    ['Scenariu activ:', scNames[sc]],
+    ['Data:', new Date().toLocaleDateString('ro-RO')],
+    [],
+    ['', 'Conservator', 'Recomandat', 'Agresiv'],
+    ['Pret vanzare (' + cur + ')'].concat([0,1,2].map(function(s2) {
+      return PL.rows.reduce(function(sum,r) { return sum + plSellPrice(r,s2); }, 0).toFixed(2);
+    })),
+    ['Cost total (' + cur + ')', PL.rows.reduce(function(s,r) { return s + r.costUnit*r.qty; }, 0).toFixed(2), '', ''],
+    ['Marja %'].concat([0,1,2].map(function(s2) {
+      var sell = PL.rows.reduce(function(sum,r) { return sum + plSellPrice(r,s2); }, 0);
+      var cost = PL.rows.reduce(function(s,r) { return s + r.costUnit*r.qty; }, 0);
+      return sell > 0 ? Math.round((sell-cost)/sell*100) + '%' : '0%';
+    }))
+  ];
+  var wsSummary = XLSX.utils.aoa_to_sheet(sumData);
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Sumar');
+
+  // Sheet 2: Detail
+  var detHeader = ['#', 'Denumire', 'Cod', 'Tip', 'Cant.', 'Cost unitar', 'Cost total', 'Marja C%', 'Marja R%', 'Marja A%', 'Pret C', 'Pret R', 'Pret A'];
+  var detRows = PL.rows.map(function(r, i) {
+    return [i+1, r.name, r.code, PL_TYPES[r.type]?PL_TYPES[r.type].label:r.type, r.qty, r.costUnit, (r.costUnit*r.qty).toFixed(2),
+      r.margins[0]+'%', r.margins[1]+'%', r.margins[2]+'%',
+      plSellPrice(r,0).toFixed(2), plSellPrice(r,1).toFixed(2), plSellPrice(r,2).toFixed(2)];
+  });
+  var wsDetail = XLSX.utils.aoa_to_sheet([detHeader].concat(detRows));
+  XLSX.utils.book_append_sheet(wb, wsDetail, 'Detaliu');
+
+  XLSX.writeFile(wb, 'ofertapro-pl-' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('ok', 'Excel exportat!');
+}
+
+function plSavePL() { try { localStorage.setItem('ofertapro_pl', JSON.stringify(PL.rows)); } catch(e) {} }
+function plLoadPL() { try { var r = localStorage.getItem('ofertapro_pl'); if (r) PL.rows = JSON.parse(r); } catch(e) {} plRenderRows(); }
+
+window.addEventListener('load', function() { try { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(e) {} loadSets(); loadDocs(); plLoadPL(); });
 </script>
 </body>
 </html>
