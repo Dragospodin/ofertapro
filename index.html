@@ -608,7 +608,7 @@ function basicParse(text) {
 function aiExtract(doc, apiKey, model) {
   doc.status = 'ai-processing'; renderDocs();
   var prompt = 'Esti un expert in procesare documente B2B. Extrage TOATE produsele din acest quotation.\n\nDin textul de mai jos, produsele arata asa:\n001  4-6 weeks  [MIL-EM300-TH] Milesight EM300-TH ...  10  units  46.90  EUR  469.00\n002  03/06/2026  [DG-DR-FSA] Dragino DR-FSA ...  10  units  17.90  EUR  179.00\n003  4-6 weeks  [DG-LTC2-LS] Dragino LTC2 Node ...  10  units  54.90  EUR  549.00\nDHL Express Europe  1  units  29.90  EUR  29.90\n\nREGULI:\n1. Extrage TOATE liniile care au: descriere + cantitate + pret unitar + total\n2. unitPrice = pretul mic (46.90), NU totalul (469.00)\n3. Codul e in [brackets] - extrage fara paranteze\n4. Ignora: adrese, firme, IBAN, VAT, Total general, Payment term, Page\n5. Shipping/DHL se include si el\n6. qty = numarul de units (ex: 10)\n\nTEXT:\n' + doc.rawText.substring(0, 7000) + '\n\nReturneaza DOAR JSON valid, fara markdown:\n{"supplier":"","currency":"EUR","products":[{"name":"denumire fara cod","code":"COD sau gol","qty":10,"unitPrice":46.90,"notes":""}]}'
-  fetch('https://api.anthropic.com/v1/messages', {
+  fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: model || 'claude-sonnet-4-20250514', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] })
