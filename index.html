@@ -1015,18 +1015,39 @@ function plAddRow() {
 }
 
 function plImportDocs() {
+  // Asigura ca documentele sunt incarcate din localStorage
+  if (!APP.docs.length) { loadDocs(); }
+  
   var imported = 0;
-  APP.docs.forEach(function(doc) {
-    if (doc.status === 'ready' && doc.products && doc.products.length) {
-      doc.products.forEach(function(p) {
-        var type = doc.isServices ? 'svc' : 'hw';
-        PL.rows.push(plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, type));
+  
+  // Incearca mai intai din coada ofertapro_pl_q (Trimite in P&L)
+  var q = [];
+  try { q = JSON.parse(localStorage.getItem('ofertapro_pl_q') || '[]'); } catch(e) {}
+  if (q.length) {
+    q.forEach(function(doc) {
+      (doc.products || []).forEach(function(p) {
+        PL.rows.push(plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, 'hw'));
         imported++;
       });
-    }
-  });
+    });
+    localStorage.removeItem('ofertapro_pl_q');
+  }
+  
+  // Daca nu e nimic in coada, importa direct din APP.docs
+  if (!imported) {
+    APP.docs.forEach(function(doc) {
+      if (doc.status === 'ready' && doc.products && doc.products.length) {
+        doc.products.forEach(function(p) {
+          var type = doc.isServices ? 'svc' : 'hw';
+          PL.rows.push(plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, type));
+          imported++;
+        });
+      }
+    });
+  }
+  
   if (imported) { plSavePL(); plRenderRows(); toast('ok', imported + ' linii importate!'); }
-  else toast('warn', 'Niciun document disponibil in tab Documente.');
+  else toast('warn', 'Niciun document disponibil. Incarca un PDF in tab Documente.');
 }
 
 function plSendToOffer() {
