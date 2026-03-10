@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OfertaPro v2.1</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--n9:#080d1a;--n8:#0d1526;--n7:#111d33;--n6:#172040;--n5:#1e2d55;--n4:#2a3f72;--b:rgba(255,255,255,0.07);--bh:rgba(255,255,255,0.14);--or:#e8651a;--orl:#f07d35;--od:rgba(232,101,26,0.15);--og:rgba(232,101,26,0.3);--tx:#eef0f6;--t2:#8892b0;--t3:#4a5578;--gr:#2dd4a0;--gd:rgba(45,212,160,0.12);--rd:#f87171;--yw:#fbbf24;--yd:rgba(251,191,36,0.12);--bl:#60a5fa;--bd:rgba(96,165,250,0.12);--r:10px;--rl:16px;--sw:220px;--hh:60px}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--n9);color:var(--tx);display:flex;flex-direction:column}
+.hdr{height:var(--hh);background:var(--n8);border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;z-index:50;position:relative}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-i{width:34px;height:34px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:#fff;box-shadow:0 4px 14px var(--og)}
+.logo-n{font-family:'Syne',sans-serif;font-size:18px;font-weight:700}
+.logo-n span{color:var(--or)}
+.hdr-c{position:absolute;left:50%;transform:translateX(-50%);font-size:12px;color:var(--t3);font-family:'DM Mono',monospace}
+.hdr-r{display:flex;align-items:center;gap:12px}
+.vbadge{background:var(--n6);border:1px solid var(--b);color:var(--t3);font-size:11px;font-family:'DM Mono',monospace;padding:4px 10px;border-radius:99px}
+.sdot{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t3)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--t3)}
+.dot.o{background:var(--or);box-shadow:0 0 6px var(--og)}
+.app{display:flex;flex:1;overflow:hidden}
+.sb{width:var(--sw);flex-shrink:0;background:var(--n8);border-right:1px solid var(--b);display:flex;flex-direction:column;padding:16px 10px;overflow-y:auto;gap:2px}
+.nsl{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);padding:14px 10px 6px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:500;color:var(--t2);border:1px solid transparent;transition:all .15s;user-select:none;position:relative}
+.ni:hover{background:var(--n7);color:var(--tx)}
+.ni.active{background:var(--od);color:var(--orl);border-color:rgba(232,101,26,.25)}
+.ni.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--or);border-radius:0 3px 3px 0;margin-left:-10px}
+.nico{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;background:var(--or);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;font-family:'DM Mono',monospace}
+.sbf{margin-top:auto;padding-top:12px;border-top:1px solid var(--b)}
+.main{flex:1;overflow-y:auto;background:var(--n9);position:relative}
+.main::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.view{display:none;padding:32px;position:relative;z-index:1;animation:fi .2s ease}
+.view.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ph{margin-bottom:28px}
+.phr{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.pey{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--or);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.pey::before{content:'';width:16px;height:2px;background:var(--or);border-radius:2px}
+.ptitle{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;line-height:1.2}
+.psub{font-size:13px;color:var(--t2);margin-top:6px;line-height:1.6}
+.card{background:var(--n8);border:1px solid var(--b);border-radius:var(--rl);padding:22px 24px;transition:border-color .2s}
+.card:hover{border-color:var(--bh)}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.ct{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t2);display:flex;align-items:center;gap:8px}
+.ctd{width:6px;height:6px;border-radius:50%;background:var(--or);flex-shrink:0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.fg{margin-bottom:18px}
+.fg:last-child{margin-bottom:0}
+.fl{display:block;font-size:11px;font-weight:600;color:var(--t2);margin-bottom:7px;letter-spacing:.06em;text-transform:uppercase}
+.fi,.fsel,.fta{width:100%;background:var(--n7);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px;font-size:13.5px;color:var(--tx);font-family:'DM Sans',sans-serif;transition:border-color .2s,box-shadow .2s;outline:none}
+.fi::placeholder,.fta::placeholder{color:var(--t3)}
+.fi:focus,.fsel:focus,.fta:focus{border-color:var(--or);box-shadow:0 0 0 3px var(--od)}
+.fta{resize:vertical;min-height:90px;line-height:1.6}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s;font-family:'DM Sans',sans-serif;white-space:nowrap;user-select:none}
+.btn:active{transform:scale(.97)}
+.bp{background:var(--or);color:#fff;box-shadow:0 4px 14px var(--od)}
+.bp:hover{background:var(--orl);box-shadow:0 6px 20px var(--og);transform:translateY(-1px)}
+.bs{background:var(--n6);color:var(--tx);border:1px solid var(--b)}
+.bs:hover{background:var(--n5)}
+.bg{background:transparent;color:var(--t2);border:1px solid var(--b)}
+.bg:hover{background:var(--n7);color:var(--tx)}
+.bdan{background:rgba(248,113,113,.12);color:var(--rd);border:1px solid rgba(248,113,113,.2)}
+.bdan:hover{background:rgba(248,113,113,.2)}
+.bgr{background:var(--gd);color:var(--gr);border:1px solid rgba(45,212,160,.2)}
+.bgr:hover{background:rgba(45,212,160,.2)}
+.bsm{padding:6px 12px;font-size:12px}
+.blg{padding:12px 24px;font-size:14px}
+.bxl{padding:14px 32px;font-size:15px}
+.wf{width:100%}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.tg{background:var(--gd);color:var(--gr)}
+.to{background:var(--od);color:var(--orl)}
+.tr{background:rgba(248,113,113,.12);color:var(--rd)}
+.tgray{background:rgba(255,255,255,.06);color:var(--t2)}
+.ib{display:flex;gap:12px;padding:14px 16px;border-radius:var(--r);font-size:13px;line-height:1.6}
+.ibo{background:var(--od);border:1px solid rgba(232,101,26,.25);color:#e8a87a}
+.ibg{background:var(--gd);border:1px solid rgba(45,212,160,.2);color:#7de8ca}
+.ibb{background:var(--bd);border:1px solid rgba(96,165,250,.2);color:#93c5fd}
+.ibico{font-size:16px;flex-shrink:0;margin-top:1px}
+.toast{position:fixed;bottom:28px;right:28px;background:var(--n6);border:1px solid var(--bh);border-radius:var(--r);padding:13px 18px;font-size:13px;font-weight:500;color:var(--tx);z-index:1000;display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(12px);transition:all .25s;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.4);max-width:380px}
+.toast.show{opacity:1;transform:translateY(0)}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--n5);border-radius:99px}
+.fx{display:flex}.fxc{display:flex;align-items:center}.fxb{display:flex;align-items:center;justify-content:space-between}.fxe{display:flex;justify-content:flex-end}
+.g6{gap:6px}.g8{gap:8px}.g12{gap:12px}.g16{gap:16px}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}.mt24{margin-top:24px}
+.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.mb20{margin-bottom:20px}.mb24{margin-bottom:24px}
+.sc{background:var(--n8);border:1px solid var(--b);border-radius:var(--rl);padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
+.sc:hover{border-color:var(--bh);transform:translateY(-2px)}
+.sc::after{content:'';position:absolute;bottom:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:var(--od);pointer-events:none}
+.sv{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:var(--orl);line-height:1;margin-bottom:4px}
+.sl{font-size:12px;color:var(--t2)}
+.es{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 32px;text-align:center}
+.ei{font-size:40px;margin-bottom:14px;opacity:.5}
+.ett{font-size:15px;font-weight:600;color:var(--t2);margin-bottom:6px}
+.esb{font-size:13px;color:var(--t3);max-width:300px;line-height:1.6;margin-bottom:20px}
+.itabs{display:flex;gap:2px;background:var(--n7);border-radius:10px;padding:3px;margin-bottom:20px}
+.itab{flex:1;padding:7px 8px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;color:var(--t3);transition:all .15s;user-select:none}
+.itab:hover{color:var(--t2)}
+.itab.active{background:var(--n5);color:var(--tx)}
+.csb{background:linear-gradient(135deg,var(--n7),var(--n6));border:1px solid var(--b);border-radius:var(--rl);padding:48px 32px;text-align:center;position:relative;overflow:hidden}
+.csb::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:var(--od);pointer-events:none}
+.csi{font-size:48px;margin-bottom:16px}
+.cst{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px}
+.csd{font-size:13px;color:var(--t2);max-width:400px;margin:0 auto;line-height:1.7}
+.csm{display:inline-block;margin-top:16px;background:var(--od);border:1px solid rgba(232,101,26,.3);color:var(--orl);font-size:11px;font-weight:700;padding:5px 14px;border-radius:99px}
+.wb{background:linear-gradient(135deg,var(--n7) 0%,var(--n6) 50%,var(--n5) 100%);border:1px solid var(--b);border-radius:var(--rl);padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden}
+.wb::after{content:'';position:absolute;right:-20px;top:-20px;width:200px;height:200px;border-radius:50%;background:var(--od);pointer-events:none}
+.wt{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px}
+.ws{font-size:13px;color:var(--t2);max-width:480px;line-height:1.6}
+.wsteps{display:flex;gap:0;margin-top:20px;flex-wrap:wrap;align-items:center}
+.wstep{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);font-weight:500}
+.wsn{width:22px;height:22px;border-radius:50%;background:var(--or);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wa{color:var(--t3);font-size:14px;margin:0 8px}
+.upz{border:2px dashed var(--b);border-radius:var(--rl);padding:40px 32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--n8);position:relative;overflow:hidden}
+.upz:hover,.upz.drag-over{border-color:var(--or);background:var(--od)}
+.upz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uzi{font-size:36px;margin-bottom:12px}
+.uzt{font-size:15px;font-weight:600;margin-bottom:6px}
+.uzs{font-size:12px;color:var(--t3)}
+.uztypes{display:flex;gap:6px;justify-content:center;margin-top:12px}
+.uzchip{background:var(--n7);border:1px solid var(--b);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--t3);font-family:'DM Mono',monospace}
+.dcard{background:var(--n8);border:1px solid var(--b);border-radius:var(--rl);overflow:hidden;transition:border-color .2s;margin-bottom:16px}
+.dcard:hover{border-color:var(--bh)}
+.dch{padding:16px 18px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--b)}
+.dci{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:rgba(248,113,113,.12)}
+.dci.xl{background:rgba(45,212,160,.12)}
+.dcn{font-size:13px;font-weight:600;margin-bottom:3px;word-break:break-word}
+.dcm{font-size:11px;color:var(--t3);display:flex;gap:10px;flex-wrap:wrap}
+.dcb{padding:14px 18px}
+.dcf{padding:12px 18px;border-top:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ptbl{width:100%;border-collapse:collapse;font-size:13px}
+.ptbl th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--b);background:var(--n7)}
+.ptbl td{padding:8px 12px;border-bottom:1px solid var(--b);vertical-align:middle}
+.ptbl tr:last-child td{border-bottom:none}
+.ptbl tfoot td{background:var(--n6)}
+.ptbl tr:hover td{background:rgba(255,255,255,.02)}
+.ptbl input{background:var(--n6);border:1px solid var(--b);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--tx);font-family:'DM Mono',monospace;outline:none;width:100%}
+.ptbl input:focus{border-color:var(--or)}
+.pov{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;gap:16px}
+.spin{width:44px;height:44px;border:3px solid var(--b);border-top-color:var(--or);border-radius:50%;animation:sp .9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.pbt{font-size:15px;font-weight:600}
+.pbs{font-size:12px;color:var(--t3);max-width:280px;line-height:1.6}
+.pbr{width:260px;height:4px;background:var(--b);border-radius:99px;overflow:hidden}
+.pbf{height:100%;background:linear-gradient(90deg,var(--or),var(--orl));border-radius:99px}
+.rtb{background:var(--n7);border:1px solid var(--b);border-radius:var(--r);padding:14px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--t2);line-height:1.8;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+.dli{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--n7);border:1px solid var(--b);border-radius:var(--r);margin-bottom:8px;cursor:pointer}
+.dli:hover{border-color:var(--bh)}
+.dlio{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(248,113,113,.12)}
+.dln{font-size:13px;font-weight:500;margin-bottom:2px}
+.dlm{font-size:11px;color:var(--t3)}
+.mg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.mi{background:var(--n7);border:1px solid var(--b);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:12px}
+.mii{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.mil{font-size:12px;color:var(--t2)}
+.miw{display:flex;align-items:center;gap:4px;margin-left:auto}
+.min{width:54px;background:var(--n6);border:1px solid var(--b);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--orl);font-family:'DM Mono',monospace;font-weight:500;text-align:center;outline:none}
+.min:focus{border-color:var(--or)}
+.lua{border:2px dashed var(--b);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--n7)}
+.lua:hover{border-color:var(--or);background:var(--od)}
+.lua input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.lup{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--t3)}
+.pch{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pc{background:var(--n7);border:1px solid var(--b);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.pc:hover{border-color:var(--bh);color:var(--tx)}
+.pc.active{background:var(--od);border-color:rgba(232,101,26,.3);color:var(--orl)}
+.pc .rm{opacity:0;font-size:10px}
+.pc.active .rm{opacity:1}
+.akf{position:relative}
+.akf input{padding-right:44px;font-family:'DM Mono',monospace;font-size:13px}
+.akt{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--t3);font-size:16px;user-select:none}
+.akt:hover{color:var(--t2)}
+.cos{display:flex;gap:8px;flex-wrap:wrap}
+.csw{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.csw:hover{transform:scale(1.1)}
+.csw.selected{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.2)}
+.trmta{min-height:120px;font-size:12px;font-family:'DM Mono',monospace;line-height:1.7}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="logo"><div class="logo-i">OP</div><span class="logo-n">Oferta<span>Pro</span></span></div>
+  <div class="hdr-c" id="hcn">— neconfigurat —</div>
+  <div class="hdr-r">
+    <div class="sdot"><div class="dot" id="adot"></div><span id="atxt">API neconectat</span></div>
+    <span class="vbadge">v2.1</span>
+  </div>
+</header>
+<div class="app">
+  <nav class="sb">
+    <div class="nsl">Principal</div>
+    <div class="ni active" id="nav-dashboard" onclick="nav('dashboard')"><span class="nico">&#9638;</span><span>Dashboard</span></div>
+    <div class="nsl">Generator</div>
+    <div class="ni" id="nav-documents" onclick="nav('documents')"><span class="nico">&#128193;</span><span>Documente</span><span class="nbadge" id="dbadge" style="display:none">0</span></div>
+    <div class="ni" id="nav-pl" onclick="nav('pl')"><span class="nico">&#128176;</span><span>P&amp;L / Pricing</span></div>
+    <div class="ni" id="nav-offer" onclick="nav('offer')"><span class="nico">&#128202;</span><span>Generator Oferta</span></div>
+    <div class="ni" id="nav-compare" onclick="nav('compare')"><span class="nico">&#9878;</span><span>Fisa Comparativa</span></div>
+    <div class="nsl">Sistem</div>
+    <div class="ni" id="nav-settings" onclick="nav('settings')"><span class="nico">&#9881;</span><span>Setari</span></div>
+    <div class="sbf"><div class="ni" style="font-size:11px;color:var(--t3)"><span class="nico" style="font-size:12px">&#128295;</span><span>Modul 2.1</span></div></div>
+  </nav>
+  <main class="main">
+
+    <div class="view active" id="view-dashboard">
+      <div class="ph"><div class="pey">Panou Principal</div><div class="ptitle">Bun venit in OfertaPro</div><div class="psub">Platforma ta de ofertare profesionala — IT, Cloud &amp; Managed Services</div></div>
+      <div class="wb mb24">
+        <div class="wt">Modul 2 — Documente &amp; Servicii</div>
+        <div class="ws">Incarca PDF-uri de la furnizori sau Excel-uri cu alocari echipa. AI extrage produsele, calculezi tarifele serviciilor.</div>
+        <div class="wsteps mt20">
+          <div class="wstep"><div class="wsn">&#10003;</div><span>Setari</span></div>
+          <span class="wa">&#8594;</span>
+          <div class="wstep"><div class="wsn" style="background:var(--or)">2</div><span>Documente</span></div>
+          <span class="wa">&#8594;</span>
+          <div class="wstep"><div class="wsn" style="background:var(--n4)">3</div><span>P&amp;L</span></div>
+          <span class="wa">&#8594;</span>
+          <div class="wstep"><div class="wsn" style="background:var(--n4)">4</div><span>Oferta</span></div>
+        </div>
+      </div>
+      <div class="g4 mb24">
+        <div class="sc"><div class="sv" id="s-offers">0</div><div class="sl">Oferte Generate</div></div>
+        <div class="sc"><div class="sv" id="s-docs">0</div><div class="sl">Documente</div></div>
+        <div class="sc"><div class="sv" id="s-prods">0</div><div class="sl">Produse Extrase</div></div>
+        <div class="sc"><div class="sv" id="s-comp">0</div><div class="sl">Fise Comparative</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct"><div class="ctd"></div>Actiuni Rapide</div></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn bp blg wf" onclick="nav('documents')">Incarca Document / Excel Servicii</button>
+            <button class="btn bs wf" onclick="nav('pl')">P&amp;L / Pricing</button>
+            <button class="btn bg wf" onclick="nav('offer')">Generator Oferta</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct"><div class="ctd"></div>Documente Recente</div></div>
+          <div id="recent-docs"><div class="es" style="padding:20px"><div class="ei" style="font-size:28px">&#128193;</div><div class="esb" style="font-size:12px">Niciun document incarcat.</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-documents">
+      <div class="ph phr">
+        <div><div class="pey">Biblioteca</div><div class="ptitle">Documente &amp; Servicii</div><div class="psub">PDF oferte furnizori + Excel alocare echipa. AI extrage produsele, tu setezi tarifele.</div></div>
+        <div class="fx g8">
+          <button class="btn bg bsm" onclick="clearAll()">Sterge tot</button>
+          <button class="btn bp" onclick="document.getElementById('mfi').click()">+ Adauga Document</button>
+          <input type="file" id="mfi" multiple accept=".pdf,.txt,.csv,.xlsx,.xls" style="display:none" onchange="handleFiles(event)">
+        </div>
+      </div>
+      <div class="upz mb24" id="upz" ondragover="dov(event)" ondragleave="dol()" ondrop="dop(event)">
+        <input type="file" id="upi" multiple accept=".pdf,.txt,.csv,.xlsx,.xls" onchange="handleFiles(event)">
+        <div class="uzi">&#128196;</div>
+        <div class="uzt">Trage documentele aici sau click pentru a selecta</div>
+        <div class="uzs">Oferte furnizori (PDF) · Liste preturi · Alocare echipa (Excel)</div>
+        <div class="uztypes"><span class="uzchip">PDF</span><span class="uzchip">XLSX</span><span class="uzchip">XLS</span><span class="uzchip">TXT</span><span class="uzchip">CSV</span></div>
+      </div>
+      <div id="docs-list"></div>
+    </div>
+
+    <div class="view" id="view-pl">
+      <div class="ph"><div class="pey">Financiar</div><div class="ptitle">P&amp;L / Pricing</div></div>
+      <div class="csb"><div class="csi">&#128176;</div><div class="cst">Disponibil in Modul 3</div><div class="csd">Tabel costuri cu marja per linie, 3 scenarii, export Excel.</div><span class="csm">Modul 3</span></div>
+    </div>
+
+    <div class="view" id="view-offer">
+      <div class="ph"><div class="pey">Generator</div><div class="ptitle">Generator Oferta</div></div>
+      <div class="csb"><div class="csi">&#128202;</div><div class="cst">Disponibil in Modul 4</div><div class="csd">AI genereaza deck profesional navy.</div><span class="csm">Modul 4</span></div>
+    </div>
+
+    <div class="view" id="view-compare">
+      <div class="ph"><div class="pey">Analiza</div><div class="ptitle">Fisa Comparativa</div></div>
+      <div class="csb"><div class="csi">&#9878;</div><div class="cst">Disponibil in Modul 5</div><div class="csd">Tabel comparativ cu recomandare AI.</div><span class="csm">Modul 5</span></div>
+    </div>
+
+    <div class="view" id="view-settings">
+      <div class="ph phr">
+        <div><div class="pey">Configurare</div><div class="ptitle">Setari</div><div class="psub">Datele tale apar in fiecare oferta.</div></div>
+        <button class="btn bp blg" onclick="saveSets()">Salveaza</button>
+      </div>
+      <div class="itabs">
+        <div class="itab active" id="st-co" onclick="stab('co')">Compania</div>
+        <div class="itab" id="st-ai" onclick="stab('ai')">AI &amp; API</div>
+        <div class="itab" id="st-ma" onclick="stab('ma')">Marje</div>
+        <div class="itab" id="st-te" onclick="stab('te')">Termeni</div>
+        <div class="itab" id="st-st" onclick="stab('st')">Stil</div>
+      </div>
+      <div id="s-co">
+        <div class="g2 g16">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Logo</div></div>
+              <div class="lua" onclick="document.getElementById('li').click()">
+                <input type="file" id="li" accept="image/*" style="display:none" onchange="upLogo(event)">
+                <div class="lup" id="lp"><div style="font-size:28px">&#128444;</div><div style="font-size:12px">Click pentru a incarca logo</div></div>
+                <img id="lprev" style="display:none;max-height:60px;max-width:180px;margin:0 auto">
+              </div>
+            </div>
+            <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Date Identificare</div></div>
+              <div class="fr2 mb16">
+                <div class="fg" style="margin-bottom:0"><label class="fl">Nume Companie</label><input class="fi" id="scn" placeholder="IT Solutions SRL"></div>
+                <div class="fg" style="margin-bottom:0"><label class="fl">CUI</label><input class="fi" id="scui" placeholder="RO12345678"></div>
+              </div>
+              <div class="fg"><label class="fl">Tagline</label><input class="fi" id="stag" placeholder="Technology Partner"></div>
+              <div class="fg"><label class="fl">Adresa</label><input class="fi" id="sadr" placeholder="Str. Victoriei 10, Bucuresti"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Contact</div></div>
+              <div class="fr2 mb16">
+                <div class="fg" style="margin-bottom:0"><label class="fl">Email</label><input class="fi" id="sem" type="email" placeholder="office@co.ro"></div>
+                <div class="fg" style="margin-bottom:0"><label class="fl">Telefon</label><input class="fi" id="sph" placeholder="+40 721..."></div>
+              </div>
+              <div class="fg"><label class="fl">Website</label><input class="fi" id="swb" placeholder="www.companie.ro"></div>
+              <div class="fr2">
+                <div class="fg" style="margin-bottom:0"><label class="fl">Persoana Contact</label><input class="fi" id="scon" placeholder="Ion Popescu"></div>
+                <div class="fg" style="margin-bottom:0"><label class="fl">Rol</label><input class="fi" id="scor" placeholder="Account Manager"></div>
+              </div>
+            </div>
+            <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Despre Companie</div></div>
+              <div class="fg"><label class="fl">Descriere</label><textarea class="fta" id="sabt" placeholder="Compania noastra..."></textarea></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                <div class="fg" style="margin-bottom:0"><label class="fl">Ani Exp.</label><input class="fi" id="syr" type="number" placeholder="10"></div>
+                <div class="fg" style="margin-bottom:0"><label class="fl">Angajati</label><input class="fi" id="semp" placeholder="50+"></div>
+                <div class="fg" style="margin-bottom:0"><label class="fl">Clienti</label><input class="fi" id="scli" placeholder="100+"></div>
+              </div>
+            </div>
+            <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Parteneri</div></div>
+              <div class="pch" id="pch">
+                <div class="pc active" onclick="tpc(this)">Microsoft <span class="rm">x</span></div>
+                <div class="pc active" onclick="tpc(this)">AWS <span class="rm">x</span></div>
+                <div class="pc" onclick="tpc(this)">HPE <span class="rm">x</span></div>
+                <div class="pc" onclick="tpc(this)">Dell <span class="rm">x</span></div>
+                <div class="pc" onclick="tpc(this)">Cisco <span class="rm">x</span></div>
+                <div class="pc" onclick="tpc(this)">VMware <span class="rm">x</span></div>
+                <div class="pc" onclick="tpc(this)">Fortinet <span class="rm">x</span></div>
+                <div class="pc" onclick="tpc(this)">Veeam <span class="rm">x</span></div>
+              </div>
+              <div class="fg mt12"><div class="fx g8"><input class="fi" id="cpa" placeholder="Adauga partener..."><button class="btn bs bsm" onclick="addP()">+ Add</button></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="s-ai" style="display:none">
+        <div class="g2 g16">
+          <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Anthropic API</div></div>
+            <div class="ib ibo" style="margin-bottom:16px"><span class="ibico">i</span><div>Obtii API Key gratuit la <strong>console.anthropic.com</strong>. Se salveaza local.</div></div>
+            <div class="fg"><label class="fl">API Key</label><div class="akf"><input class="fi" id="sak" type="password" placeholder="sk-ant-api03-..." oninput="chkAPI()"><span class="akt" onclick="togAPI()">o</span></div></div>
+            <div class="fg"><label class="fl">Model AI</label><select class="fsel" id="smod"><option value="claude-sonnet-4-20250514">Claude Sonnet 4 — Recomandat</option><option value="claude-opus-4-20250514">Claude Opus 4 — Premium</option></select></div>
+          </div>
+          <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Configurare</div></div>
+            <div class="fg"><label class="fl">Ton</label><select class="fsel" id="ston"><option value="consultative">Consultativ</option><option value="technical">Tehnic</option><option value="commercial">Comercial</option></select></div>
+            <div class="fg"><label class="fl">Limba</label><select class="fsel" id="slng"><option value="ro">Romana</option><option value="en">Engleza</option></select></div>
+            <div class="fg"><label class="fl">Valabilitate</label><select class="fsel" id="sval"><option value="15">15 zile</option><option value="30" selected>30 zile</option><option value="45">45 zile</option><option value="60">60 zile</option></select></div>
+          </div>
+        </div>
+      </div>
+      <div id="s-ma" style="display:none">
+        <div class="g2 g16">
+          <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Marje Implicite</div></div>
+            <div class="mg">
+              <div class="mi"><div class="mii" style="background:var(--bd)">IT</div><div><div class="mil">Echipamente IT</div></div><div class="miw"><input class="min" id="meq" type="number" value="18"><span style="font-size:12px;color:var(--t3)">%</span></div></div>
+              <div class="mi"><div class="mii" style="background:var(--gd)">CL</div><div><div class="mil">Cloud / Licente</div></div><div class="miw"><input class="min" id="mcl" type="number" value="12"><span style="font-size:12px;color:var(--t3)">%</span></div></div>
+              <div class="mi"><div class="mii" style="background:var(--yd)">MS</div><div><div class="mil">Managed Services</div></div><div class="miw"><input class="min" id="mms" type="number" value="35"><span style="font-size:12px;color:var(--t3)">%</span></div></div>
+              <div class="mi"><div class="mii" style="background:var(--od)">PS</div><div><div class="mil">Prof. Services</div></div><div class="miw"><input class="min" id="mps" type="number" value="40"><span style="font-size:12px;color:var(--t3)">%</span></div></div>
+              <div class="mi"><div class="mii" style="background:rgba(167,139,250,.12)">CY</div><div><div class="mil">Cybersecurity</div></div><div class="miw"><input class="min" id="msc" type="number" value="22"><span style="font-size:12px;color:var(--t3)">%</span></div></div>
+              <div class="mi"><div class="mii" style="background:rgba(255,255,255,.06)">AL</div><div><div class="mil">Altele</div></div><div class="miw"><input class="min" id="mot" type="number" value="20"><span style="font-size:12px;color:var(--t3)">%</span></div></div>
+            </div>
+          </div>
+          <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Moneda &amp; Scenarii</div></div>
+            <div class="fr2 mb16">
+              <div class="fg" style="margin-bottom:0"><label class="fl">Moneda</label><select class="fsel" id="scur"><option value="EUR">EUR</option><option value="RON">RON</option><option value="USD">USD</option></select></div>
+              <div class="fg" style="margin-bottom:0"><label class="fl">TVA %</label><input class="fi" id="stva" type="number" value="19"></div>
+            </div>
+            <div class="fg"><label class="fl">Termen plata</label><select class="fsel" id="spay"><option>30 zile de la factura</option><option>15 zile</option><option>45 zile</option><option>La livrare</option></select></div>
+            <div class="fg"><label class="fl">Scenariu 1</label><input class="fi" id="ss1" value="Conservator"></div>
+            <div class="fg"><label class="fl">Scenariu 2</label><input class="fi" id="ss2" value="Recomandat"></div>
+            <div class="fg"><label class="fl">Scenariu 3</label><input class="fi" id="ss3" value="Agresiv"></div>
+          </div>
+        </div>
+      </div>
+      <div id="s-te" style="display:none">
+        <div class="g2 g16">
+          <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Termeni</div></div>
+            <div class="fg"><label class="fl">Termeni Livrare</label><textarea class="fta trmta" id="std" placeholder="Termen livrare: 5-15 zile"></textarea></div>
+            <div class="fg"><label class="fl">Termeni Garantie</label><textarea class="fta trmta" id="stw" placeholder="Garantie conform producatorului"></textarea></div>
+          </div>
+          <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Note &amp; CTA</div></div>
+            <div class="fg"><label class="fl">Observatii</label><textarea class="fta trmta" id="sto" placeholder="Oferta este orientativa"></textarea></div>
+            <div class="fg"><label class="fl">Call-to-action</label><textarea class="fta" id="stc" placeholder="Suntem la dispozitie pentru orice clarificari."></textarea></div>
+          </div>
+        </div>
+      </div>
+      <div id="s-st" style="display:none">
+        <div class="g2 g16">
+          <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Culoare Accent</div></div>
+            <div class="cos" id="acols">
+              <div class="csw selected" style="background:#e8651a" data-color="#e8651a" onclick="selCol(this)"></div>
+              <div class="csw" style="background:#3b82f6" data-color="#3b82f6" onclick="selCol(this)"></div>
+              <div class="csw" style="background:#2dd4a0" data-color="#2dd4a0" onclick="selCol(this)"></div>
+              <div class="csw" style="background:#a855f7" data-color="#a855f7" onclick="selCol(this)"></div>
+              <div class="csw" style="background:#f59e0b" data-color="#f59e0b" onclick="selCol(this)"></div>
+            </div>
+            <div class="fg mt16"><label class="fl">Hex custom</label><div class="fx g8"><input class="fi" id="ccol" placeholder="#e8651a" style="font-family:'DM Mono',monospace"><button class="btn bs bsm" onclick="apCol()">Aplica</button></div></div>
+          </div>
+          <div class="card"><div class="ch"><div class="ct"><div class="ctd"></div>Stil Slide-uri</div></div>
+            <div class="fg"><label class="fl">Fundal</label><select class="fsel" id="ssbg"><option value="dark">Intunecat Navy</option><option value="light">Deschis</option></select></div>
+            <div class="fg"><label class="fl">Dimensiune</label><select class="fsel" id="sssz"><option value="landscape">16:9 Landscape</option><option value="portrait">A4 Portrait</option></select></div>
+            <div class="fg"><label class="fl">Footer</label><input class="fi" id="sft" placeholder="Confidential — [Companie] | [Client] | [Data]"></div>
+          </div>
+        </div>
+      </div>
+      <div class="fxe mt24"><button class="btn bp bxl" onclick="saveSets()">Salveaza toate setarile</button></div>
+    </div>
+
+  </main>
+</div>
+<div class="toast" id="toast"><span id="ticon"></span>&nbsp;<span id="tmsg"></span></div>
+<script>
+try { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(e) {}
+var APP = { docs: [] };
+
+function nav(id) {
+  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  document.querySelectorAll('.ni').forEach(function(n) { n.classList.remove('active'); });
+  document.getElementById('view-' + id).classList.add('active');
+  var el = document.getElementById('nav-' + id);
+  if (el) el.classList.add('active');
+}
+
+function stab(t) {
+  ['co','ai','ma','te','st'].forEach(function(x) {
+    document.getElementById('s-' + x).style.display = x === t ? 'block' : 'none';
+    document.getElementById('st-' + x).classList.toggle('active', x === t);
+  });
+}
+
+function dov(e) { e.preventDefault(); document.getElementById('upz').classList.add('drag-over'); }
+function dol() { document.getElementById('upz').classList.remove('drag-over'); }
+function dop(e) { e.preventDefault(); dol(); handleFiles({ target: { files: e.dataTransfer.files } }); }
+
+function handleFiles(e) {
+  Array.from(e.target.files).forEach(function(f) { processFile(f); });
+  e.target.value = '';
+}
+
+function processFile(file) {
+  var id = 'd' + Date.now() + Math.random().toString(36).substr(2, 5);
+  var ext = file.name.split('.').pop().toLowerCase();
+  var isXls = ext === 'xlsx' || ext === 'xls';
+  var doc = { id: id, name: file.name, ext: ext, size: (file.size/1024/1024).toFixed(2)+' MB', date: new Date().toLocaleDateString('ro-RO'), status: 'processing', rawText: '', products: [], type: isXls ? 'services' : detType(file.name), supplier: '', currency: 'EUR', isServices: isXls, services: null };
+  APP.docs.push(doc);
+  renderDocs(); updateStats();
+  if (isXls) {
+    readXLSX(file, doc);
+  } else if (ext === 'pdf') {
+    readPDF(file).then(function(txt) {
+      doc.rawText = txt; doc.status = 'extracted'; renderDocs();
+      toast('ok', 'Text extras: ' + file.name);
+      var s = getSets();
+      if (s.apiKey && s.apiKey.indexOf('sk-ant-') === 0) { aiExtract(doc, s.apiKey, s.model); }
+      else { doc.products = basicParse(doc.rawText); doc.status = 'ready'; renderDocs(); }
+    }).catch(function(err) { doc.status = 'error'; doc.error = err.message; renderDocs(); toast('err', 'Eroare PDF: ' + err.message); });
+  } else {
+    readTXT(file).then(function(txt) {
+      doc.rawText = txt; doc.status = 'extracted';
+      var s = getSets();
+      if (s.apiKey && s.apiKey.indexOf('sk-ant-') === 0) { aiExtract(doc, s.apiKey, s.model); }
+      else { doc.products = basicParse(doc.rawText); doc.status = 'ready'; renderDocs(); }
+    }).catch(function(err) { doc.status = 'error'; doc.error = err.message; renderDocs(); });
+  }
+}
+
+function detType(name) {
+  var n = name.toLowerCase();
+  if (n.indexOf('price') >= 0 || n.indexOf('pret') >= 0 || n.indexOf('list') >= 0) return 'pricelist';
+  if (n.indexOf('spec') >= 0 || n.indexOf('data') >= 0) return 'datasheet';
+  return 'offer';
+}
+
+function readPDF(file) {
+  if (typeof pdfjsLib === 'undefined') return Promise.reject(new Error('PDF.js nu s-a incarcat. Verifica conexiunea la internet.'));
+  return file.arrayBuffer().then(function(ab) {
+    return pdfjsLib.getDocument({ data: ab }).promise;
+  }).then(function(pdf) {
+    var pageNums = [];
+    for (var i = 1; i <= pdf.numPages; i++) pageNums.push(i);
+    return pageNums.reduce(function(chain, n) {
+      return chain.then(function(acc) {
+        return pdf.getPage(n).then(function(pg) {
+          return pg.getTextContent({ normalizeWhitespace: true }).then(function(c) {
+            // Grupare pe randuri folosind coordonata Y (±3px = acelasi rand)
+            var rows = [];
+            c.items.forEach(function(item) {
+              if (!item.str || !item.str.trim()) return;
+              var y = Math.round(item.transform[5] / 3) * 3; // rotunjit la 3px
+              var x = item.transform[4];
+              var row = rows.find(function(r) { return Math.abs(r.y - y) < 4; });
+              if (row) {
+                row.items.push({ x: x, str: item.str });
+              } else {
+                rows.push({ y: y, items: [{ x: x, str: item.str }] });
+              }
+            });
+            // Sorteaza randurile de sus in jos (Y descrescator in PDF)
+            rows.sort(function(a, b) { return b.y - a.y; });
+            // Sorteaza itemele pe fiecare rand de la stanga la dreapta
+            var pageText = rows.map(function(row) {
+              row.items.sort(function(a, b) { return a.x - b.x; });
+              return row.items.map(function(i) { return i.str; }).join('  ');
+            }).join('\n');
+            return acc + pageText + '\n--- pagina ' + n + ' ---\n';
+          });
+        });
+      });
+    }, Promise.resolve(''));
+  });
+}
+
+function readTXT(file) {
+  return new Promise(function(res, rej) {
+    var r = new FileReader();
+    r.onload = function(e) { res(e.target.result); };
+    r.onerror = function() { rej(new Error('Eroare citire fisier')); };
+    r.readAsText(file, 'UTF-8');
+  });
+}
+
+function basicParse(text) {
+  var prods = [];
+  // Cuvinte care indica header/footer/metadata - liniile cu acestea se ignora
+  var skipPatterns = [
+    /delivery.?term/i, /^dap/i, /page\s*\d/i, /\bvat\b/i, /sub.?total/i,
+    /^total/i, /\biban\b/i, /\bswift\b/i, /gmbh/i, /s\.r\.l/i,
+    /quotation\s+no/i, /invoice\s+no/i, /order\s+no/i, /flinsberger/i,
+    /payment\s+term/i, /bank\s+account/i, /dear\s+/i, /sincerely/i,
+    /www\./i, /http/i, /@.*\./i, /tel:/i, /fax:/i
+  ];
+  
+  var lines = text.split('\n');
+  
+  lines.forEach(function(line) {
+    line = line.trim();
+    if (line.length < 8) return;
+    
+    // Sari peste linii cu pattern-uri de metadata
+    if (skipPatterns.some(function(p) { return p.test(line); })) return;
+    
+    // Pattern 1: Linie care incepe cu numar pozitie + descriere + qty + pret unitar + total
+    // Ex: "1  Milesight EM300-TH [MIL-EM300-TH]  10  46.90  469.00"
+    var posMatch = line.match(/^(\d{1,3})\s+(.{5,}?)\s+(\d{1,4})\s+(\d+[.,]\d{2})\s+(\d+[.,]\d{2})\s*$/);
+    if (posMatch) {
+      var name = posMatch[2].trim();
+      var qty = parseInt(posMatch[3]);
+      var unitPrice = parseFloat(posMatch[4].replace(',','.'));
+      var total = parseFloat(posMatch[5].replace(',','.'));
+      // Verifica: unitPrice * qty ≈ total (confirma ca e linie de produs)
+      if (Math.abs(unitPrice * qty - total) < total * 0.05 + 0.01) {
+        var codeM = name.match(/\[([A-Z0-9\-\.]+)\]/);
+        var cleanName = name.replace(/\[[^\]]+\]/g,'').trim();
+        prods.push({ name: cleanName.substring(0,120), code: codeM ? codeM[1] : '', qty: qty, unitPrice: unitPrice, notes: '' });
+        return;
+      }
+    }
+    
+    // Pattern 2: Linie cu cod in brackets + pret
+    // Ex: "Milesight EM300-TH LoRaWAN [MIL-EM300-TH] 46.90"
+    var bracketMatch = line.match(/(.+)\[([A-Z0-9\-\.]+)\](.*)\b(\d+[.,]\d{2})\b/);
+    if (bracketMatch) {
+      var name2 = (bracketMatch[1] + bracketMatch[3]).trim();
+      var price2 = parseFloat(bracketMatch[4].replace(',','.'));
+      if (price2 > 0.5 && price2 < 100000 && name2.length > 4) {
+        prods.push({ name: name2.substring(0,120), code: bracketMatch[2], qty: 1, unitPrice: price2, notes: '' });
+        return;
+      }
+    }
+    
+    // Pattern 3: Fallback - linie cu text + pret izolat la final
+    // Ex: "DHL Express Europe  29.90"
+    var endPriceMatch = line.match(/^([A-Za-z][^\d]{4,})\s+(\d{1,6}[.,]\d{2})\s*$/);
+    if (endPriceMatch) {
+      var name3 = endPriceMatch[1].trim();
+      var price3 = parseFloat(endPriceMatch[2].replace(',','.'));
+      if (price3 > 0.5 && price3 < 100000) {
+        prods.push({ name: name3.substring(0,120), code: '', qty: 1, unitPrice: price3, notes: '' });
+      }
+    }
+  });
+  
+  // Deduplica produse identice
+  var seen = {};
+  prods = prods.filter(function(p) {
+    var key = p.name + p.unitPrice;
+    if (seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+  
+  return prods.slice(0, 50);
+}
+
+function aiExtract(doc, apiKey, model) {
+  doc.status = 'ai-processing'; renderDocs();
+  var prompt = 'Esti un expert in procesare documente B2B. Primesti textul extras dintr-un PDF de oferta/quotation de la un furnizor IT.\n\nSARCINA TA: Extrage DOAR liniile de produse/servicii vandabile. NU extrage date despre firma, adrese, termeni de livrare, conditii comerciale, headere, footere sau numere de pagina.\n\nCUM ARATA O LINIE DE PRODUS in textul PDF (exemplu):\n"1 Milesight EM300-TH LoRaWAN Temperature Sensor [MIL-EM300-TH] 10 46.90 469.00"\n"2 Dragino DR-FSA Food Temperature Sensor [DG-DR-FSA] 10 17.90 179.00"\n"3 DHL Express shipping 1 29.90 29.90"\n\nREGULI STRICTE:\n1. O linie de produs contine OBLIGATORIU: un numar pozitie (1,2,3...), o descriere, o cantitate, un pret unitar si un total\n2. unitPrice = pretul PER BUCATA (ex: 46.90), NU totalul liniei (ex: 469.00)\n3. Codul produsului e in [paranteze patrate] - extrage-l fara paranteze\n4. IGNORA complet: numele firmei, adresa, CIF/VAT, "Delivery term", "DAP", "Page X of Y", date, numere de ordine ale documentului, subtotal, total, TVA\n5. Daca o linie contine "Delivery term", "Page", "VAT", "Total", "Subtotal", "Address", nume de firma sau strada - SARI PESTE EA\n6. Extrage TOATE produsele inclusiv transport/shipping/freight\n\nTEXT PDF:\n' + doc.rawText.substring(0, 7000) + '\n\nReturneaza DOAR JSON valid, fara markdown, fara explicatii:\n{"supplier":"","currency":"EUR","products":[{"name":"denumire produs fara cod","code":"COD_DIN_BRACKETS_sau_gol","qty":1,"unitPrice":0.00,"notes":""}]}';
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: model || 'claude-sonnet-4-20250514', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (!data.content || !data.content[0]) throw new Error(data.error ? data.error.message : 'API error');
+    var raw = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    var parsed = JSON.parse(raw);
+    doc.products = parsed.products || []; doc.supplier = parsed.supplier || ''; doc.currency = parsed.currency || 'EUR';
+    if (parsed.docType) doc.type = parsed.docType;
+    doc.status = 'ready'; renderDocs(); updateStats();
+    toast('ok', 'AI a extras ' + doc.products.length + ' produse');
+  }).catch(function(err) {
+    var isLocal = window.location.protocol === 'file:';
+    var msg = isLocal ? 'API necesita Vercel (CORS local). Proceseaza local...' : 'API eroare: ' + err.message;
+    doc.products = basicParse(doc.rawText); doc.status = 'ready'; renderDocs();
+    toast('warn', msg + ' (' + doc.products.length + ' produse gasite)');
+  });
+}
+
+function readXLSX(file, doc) {
+  file.arrayBuffer().then(function(ab) {
+    var wb = XLSX.read(ab, { type: 'array' });
+    var allSheets = {};
+    wb.SheetNames.forEach(function(name) { allSheets[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' }); });
+    doc.rawText = wb.SheetNames.map(function(n) { return 'Sheet: ' + n + '\n' + allSheets[n].map(function(r) { return r.join('\t'); }).join('\n'); }).join('\n\n');
+    doc.services = parseServices(allSheets);
+    doc.status = 'ready'; renderDocs(); updateStats();
+    toast('ok', 'Excel: ' + doc.services.roles.length + ' roluri detectate');
+  }).catch(function(err) { doc.status = 'error'; doc.error = err.message; renderDocs(); toast('err', 'Eroare Excel: ' + err.message); });
+}
+
+function parseServices(sheets) {
+  var defRates = { 'project manager': 800, 'solution architect': 1000, 'senior': 900, 'devops': 850, 'cloud': 850, 'qa': 700, 'tester': 700, 'junior': 600 };
+  var roles = {}, sprints = [];
+  Object.keys(sheets).forEach(function(sn) {
+    var rows = sheets[sn];
+    if (!rows || rows.length < 2) return;
+    var headers = rows[0].map(function(h) { return String(h).trim(); });
+    var spCols = [];
+    headers.forEach(function(h, i) {
+      var hl = h.toLowerCase();
+      if (hl.indexOf('sprint') >= 0 || hl.indexOf('week') >= 0 || hl.indexOf('phase') >= 0 || hl.indexOf('faza') >= 0 || hl.indexOf('etapa') >= 0) { spCols.push({ h: h, i: i }); if (sprints.indexOf(h) < 0) sprints.push(h); }
+    });
+    if (spCols.length > 0) {
+      rows.slice(1).forEach(function(row) {
+        var rn = String(row[0] || '').trim();
+        if (!rn || rn.toLowerCase().indexOf('total') >= 0) return;
+        if (!roles[rn]) roles[rn] = { name: rn, totalDays: 0, rate: guessRate(rn, defRates), sprints: {} };
+        spCols.forEach(function(sc) {
+          var d = parseFloat(String(row[sc.i] || '').replace(',', '.')) || 0;
+          if (d > 0) { roles[rn].totalDays += d; roles[rn].sprints[sc.h] = (roles[rn].sprints[sc.h] || 0) + d; }
+        });
+      });
+    } else {
+      rows.slice(1).forEach(function(row) {
+        var sn2 = String(row[0] || '').trim();
+        if (!sn2) return;
+        if (sprints.indexOf(sn2) < 0) sprints.push(sn2);
+        headers.slice(1).forEach(function(rname, ci) {
+          var rn = String(rname || '').trim();
+          if (!rn) return;
+          var d = parseFloat(String(row[ci + 1] || '').replace(',', '.')) || 0;
+          if (d > 0) {
+            if (!roles[rn]) roles[rn] = { name: rn, totalDays: 0, rate: guessRate(rn, defRates), sprints: {} };
+            roles[rn].totalDays += d; roles[rn].sprints[sn2] = (roles[rn].sprints[sn2] || 0) + d;
+          }
+        });
+      });
+    }
+  });
+  return { roles: Object.values(roles), sprints: sprints };
+}
+
+function guessRate(rn, rates) {
+  var r = rn.toLowerCase();
+  var keys = Object.keys(rates);
+  for (var i = 0; i < keys.length; i++) { if (r.indexOf(keys[i]) >= 0) return rates[keys[i]]; }
+  return 800;
+}
+
+function calcTotal(svc) { return svc.roles.reduce(function(s, r) { return s + (r.totalDays || 0) * (r.rate || 0); }, 0); }
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderDocs() {
+  var c = document.getElementById('docs-list');
+  if (!APP.docs.length) { c.innerHTML = '<div class="es"><div class="ei">&#128194;</div><div class="ett">Niciun document incarcat</div><div class="esb">Trage fisiere sau apasa Adauga Document</div></div>'; updateRecent(); return; }
+  c.innerHTML = APP.docs.map(buildCard).join('');
+  updateRecent(); saveDocs();
+}
+
+function buildCard(doc) {
+  var tlbl = { offer: 'Oferta Pret', pricelist: 'Pricelist', datasheet: 'Datasheet', services: 'Servicii Excel' };
+  var body = '';
+  if (doc.status === 'processing') {
+    body = '<div class="pov"><div class="spin"></div><div class="pbt">Se proceseaza...</div></div>';
+  } else if (doc.status === 'ai-processing') {
+    body = '<div class="pov"><div class="spin"></div><div class="pbt">AI identifica produsele...</div><div class="pbs">Analizez structura tabelului</div><div class="pbr mt12"><div class="pbf" style="width:65%"></div></div></div>';
+  } else if (doc.status === 'error') {
+    body = '<div class="dcb"><div class="ib ibo"><span class="ibico">!</span><div>Eroare: ' + esc(doc.error || 'necunoscuta') + '</div></div></div>';
+  } else if (doc.isServices && doc.services) {
+    body = buildSvcCard(doc);
+  } else {
+    var hp = doc.products && doc.products.length > 0;
+    body = '<div class="dcb">' + (!hp ? '<div class="ib ibo"><span class="ibico">i</span><div>Nu s-au detectat produse. Re-proceseaza cu AI sau adauga manual.</div></div>' : '') + (hp ? buildProdTable(doc) : '') + (doc.rawText ? '<details style="margin-top:12px"><summary style="font-size:11px;color:var(--t3);cursor:pointer">Text extras (' + doc.rawText.length + ' caractere)</summary><div class="rtb mt8">' + esc(doc.rawText.substring(0, 2000)) + (doc.rawText.length > 2000 ? '...' : '') + '</div></details>' : '') + '</div>';
+  }
+  var stag = doc.status === 'ready' ? '<span class="tag tg">Gata</span>' : doc.status === 'error' ? '<span class="tag tr">Eroare</span>' : '<span class="tag to">Procesare</span>';
+  var finfo = doc.isServices ? '&#128101; <strong>' + (doc.services && doc.services.roles ? doc.services.roles.length : 0) + '</strong> roluri' : '&#128230; <strong>' + (doc.products ? doc.products.length : 0) + '</strong> produse';
+  var fbtns = (doc.isServices ? '' : '<button class="btn bg bsm" onclick="reProc(\'' + doc.id + '\')">Re-proceseaza</button>') + '<button class="btn bgr bsm" onclick="topl(\'' + doc.id + '\')">Trimite in P&amp;L</button>';
+  var footer = doc.status === 'ready' ? '<div class="dcf"><span style="font-size:12px;color:var(--t2)">' + finfo + '</span><div class="fx g8">' + fbtns + '<button class="btn bdan bsm" onclick="delDoc(\'' + doc.id + '\')">Sterge</button></div></div>' : '<div class="dcf"><div></div><button class="btn bdan bsm" onclick="delDoc(\'' + doc.id + '\')">Sterge</button></div>';
+  var ico = doc.isServices ? '<div class="dci xl">XLS</div>' : '<div class="dci">PDF</div>';
+  var sup = doc.supplier ? '<span>Furnizor: <strong>' + esc(doc.supplier) + '</strong></span>' : '';
+  return '<div class="dcard" id="dc-' + doc.id + '"><div class="dch">' + ico + '<div style="flex:1;min-width:0"><div class="dcn">' + esc(doc.name) + '</div><div class="dcm"><span>' + doc.size + '</span><span>' + doc.date + '</span>' + sup + '</div></div><div class="fx g8" style="align-items:flex-start">' + stag + '<span class="tag tgray">' + (tlbl[doc.type] || 'Document') + '</span></div></div>' + body + footer + '</div>';
+}
+
+function buildProdTable(doc) {
+  var cur = doc.currency || 'EUR';
+  var rows = doc.products.map(function(p, i) {
+    return '<tr><td><input value="' + esc(p.name) + '" onchange="upd(\'' + doc.id + '\',' + i + ',\'name\',this.value)"></td><td><input value="' + esc(p.code || '') + '" onchange="upd(\'' + doc.id + '\',' + i + ',\'code\',this.value)"></td><td><input value="' + (p.qty||1) + '" type="number" min="1" onchange="upd(\'' + doc.id + '\',' + i + ',\'qty\',this.value)"></td><td><input value="' + (p.unitPrice||0) + '" type="number" step="0.01" onchange="upd(\'' + doc.id + '\',' + i + ',\'unitPrice\',this.value)"></td><td><input value="' + esc(p.notes||'') + '" onchange="upd(\'' + doc.id + '\',' + i + ',\'notes\',this.value)"></td></tr>';
+  }).join('');
+  return '<div style="overflow-x:auto"><table class="ptbl"><thead><tr><th style="width:38%">Produs/Serviciu</th><th style="width:13%">Cod</th><th style="width:9%">Cant.</th><th style="width:15%">Pret (' + cur + ')</th><th style="width:25%">Note</th></tr></thead><tbody>' + rows + '</tbody></table></div><button class="btn bg bsm mt8" onclick="addRow(\'' + doc.id + '\')">+ Adauga rand</button>';
+}
+
+function buildSvcCard(doc) {
+  var svc = doc.services;
+  if (!svc || !svc.roles || svc.roles.length === 0) {
+    return '<div class="dcb"><div class="ib ibo"><span class="ibico">i</span><div>Nu s-a putut detecta structura de roluri/sprinturi. Asigura-te ca ai coloane "Sprint X" sau "Phase X" in Excel.</div></div>' + (doc.rawText ? '<details style="margin-top:12px"><summary style="font-size:11px;color:var(--t3);cursor:pointer">Continut Excel</summary><div class="rtb mt8">' + esc(doc.rawText.substring(0, 3000)) + '</div></details>' : '') + '</div>';
+  }
+  var cur = doc.currency || 'EUR';
+  var total = calcTotal(svc);
+  var rows = svc.roles.map(function(r, i) {
+    var lt = (r.totalDays || 0) * (r.rate || 0);
+    return '<tr><td><input value="' + esc(r.name) + '" onchange="updSvc(\'' + doc.id + '\',' + i + ',\'name\',this.value)"></td><td><input value="' + (r.totalDays||0) + '" type="number" step="0.5" onchange="updSvc(\'' + doc.id + '\',' + i + ',\'totalDays\',this.value)"></td><td><input value="' + (r.rate||800) + '" type="number" step="50" onchange="updSvc(\'' + doc.id + '\',' + i + ',\'rate\',this.value)"></td><td style="font-family:DM Mono,monospace;color:var(--orl);font-weight:600" id="svct-' + doc.id + '-' + i + '">' + lt.toLocaleString('ro-RO') + ' ' + cur + '</td><td><input value="' + esc(r.lineDesc || (r.name + ' - ' + (r.totalDays||0) + ' zile')) + '" onchange="updSvc(\'' + doc.id + '\',' + i + ',\'lineDesc\',this.value)"></td></tr>';
+  }).join('');
+  return '<div class="dcb"><div class="ib ibb" style="margin-bottom:12px"><span class="ibico">i</span><div>Ajusteaza tarifele EUR/zi. Totalul se recalculeaza automat.</div></div><div style="overflow-x:auto"><table class="ptbl"><thead><tr><th style="width:28%">Rol</th><th style="width:14%">Zile</th><th style="width:16%">EUR/zi</th><th style="width:18%">Total EUR</th><th style="width:24%">Descriere oferta</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td colspan="3" style="padding:10px 12px;font-weight:700;font-size:12px;color:var(--t2)">TOTAL SERVICII</td><td colspan="2" style="padding:10px 12px;font-family:DM Mono,monospace;font-weight:800;font-size:15px;color:var(--orl)" id="svctot-' + doc.id + '">' + total.toLocaleString('ro-RO') + ' ' + cur + '</td></tr></tfoot></table></div>' + (svc.sprints && svc.sprints.length ? '<div style="margin-top:10px;font-size:11px;color:var(--t3)">Sprinturi: ' + svc.sprints.join(', ') + '</div>' : '') + '<button class="btn bg bsm mt8" onclick="addSvcRow(\'' + doc.id + '\')">+ Adauga rol</button></div>';
+}
+
+function upd(id, i, f, v) {
+  var doc = APP.docs.find(function(d) { return d.id === id; });
+  if (doc && doc.products[i]) { doc.products[i][f] = (f === 'qty' || f === 'unitPrice') ? parseFloat(v) || 0 : v; saveDocs(); }
+}
+
+function updSvc(id, i, f, v) {
+  var doc = APP.docs.find(function(d) { return d.id === id; });
+  if (!doc || !doc.services || !doc.services.roles[i]) return;
+  var r = doc.services.roles[i];
+  if (f === 'totalDays' || f === 'rate') r[f] = parseFloat(v) || 0; else r[f] = v;
+  var cur = doc.currency || 'EUR';
+  var lt = document.getElementById('svct-' + id + '-' + i);
+  if (lt) lt.textContent = ((r.totalDays||0) * (r.rate||0)).toLocaleString('ro-RO') + ' ' + cur;
+  var gt = document.getElementById('svctot-' + id);
+  if (gt) gt.textContent = calcTotal(doc.services).toLocaleString('ro-RO') + ' ' + cur;
+  saveDocs();
+}
+
+function addRow(id) { var doc = APP.docs.find(function(d) { return d.id === id; }); if (doc) { doc.products.push({ name: 'Produs nou', code: '', qty: 1, unitPrice: 0, notes: '' }); renderDocs(); } }
+function addSvcRow(id) { var doc = APP.docs.find(function(d) { return d.id === id; }); if (doc && doc.services) { doc.services.roles.push({ name: 'Rol nou', totalDays: 5, rate: 800, lineDesc: 'Rol nou - 5 zile' }); renderDocs(); } }
+function delDoc(id) { APP.docs = APP.docs.filter(function(d) { return d.id !== id; }); renderDocs(); updateStats(); toast('ok', 'Document sters'); }
+function clearAll() { if (!confirm('Stergi toate documentele?')) return; APP.docs = []; localStorage.removeItem('ofertapro_docs'); renderDocs(); updateStats(); toast('ok', 'Sterse'); }
+function reProc(id) { var doc = APP.docs.find(function(d) { return d.id === id; }); if (!doc || !doc.rawText) return; var s = getSets(); if (!s.apiKey) { toast('warn', 'Introdu API Key in Setari'); return; } aiExtract(doc, s.apiKey, s.model); }
+function topl(id) {
+  var doc = APP.docs.find(function(d) { return d.id === id; }); if (!doc) return;
+  var q = JSON.parse(localStorage.getItem('ofertapro_pl_q') || '[]');
+  if (q.find(function(x) { return x.id === id; })) { toast('warn', 'Deja trimis in P&L'); return; }
+  var prods;
+  if (doc.isServices && doc.services) { prods = doc.services.roles.map(function(r) { return { name: r.lineDesc || r.name, code: 'SVC', qty: r.totalDays || 1, unitPrice: r.rate || 0, notes: r.name + ' x ' + (r.totalDays||0) + ' zile' }; }); toast('ok', prods.length + ' linii servicii trimise in P&L!'); }
+  else { prods = doc.products || []; toast('ok', prods.length + ' produse trimise in P&L!'); }
+  q.push({ id: doc.id, name: doc.name, products: prods, currency: doc.currency || 'EUR' });
+  localStorage.setItem('ofertapro_pl_q', JSON.stringify(q));
+}
+
+function updateStats() {
+  var tp = APP.docs.reduce(function(s, d) { return s + (d.products ? d.products.length : 0); }, 0);
+  document.getElementById('s-docs').textContent = APP.docs.length;
+  document.getElementById('s-prods').textContent = tp;
+  var b = document.getElementById('dbadge');
+  b.style.display = APP.docs.length > 0 ? 'inline-flex' : 'none';
+  b.textContent = APP.docs.length;
+}
+
+function updateRecent() {
+  var el = document.getElementById('recent-docs');
+  if (!APP.docs.length) { el.innerHTML = '<div class="es" style="padding:20px"><div class="ei" style="font-size:28px">&#128193;</div><div class="esb" style="font-size:12px">Niciun document incarcat.</div></div>'; return; }
+  el.innerHTML = APP.docs.slice(-4).reverse().map(function(d) { var info = d.status === 'ready' ? (d.isServices ? (d.services && d.services.roles ? d.services.roles.length : 0) + ' roluri' : (d.products ? d.products.length : 0) + ' produse') : 'procesare...'; return '<div class="dli" onclick="nav(\'documents\')"><div class="dlio">' + (d.isServices ? 'XL' : 'PD') + '</div><div><div class="dln">' + esc(d.name) + '</div><div class="dlm">' + info + ' - ' + d.date + '</div></div></div>'; }).join('');
+}
+
+function saveDocs() { var s = APP.docs.map(function(d) { return Object.assign({}, d, { rawText: (d.rawText || '').substring(0, 8000) }); }); try { localStorage.setItem('ofertapro_docs', JSON.stringify(s)); } catch(e) {} }
+function loadDocs() { try { var r = localStorage.getItem('ofertapro_docs'); if (r) { APP.docs = JSON.parse(r); } } catch(e) {} renderDocs(); updateStats(); }
+
+function gv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+function saveSets() {
+  var d = { companyName: gv('scn'), tagline: gv('stag'), cui: gv('scui'), address: gv('sadr'), email: gv('sem'), phone: gv('sph'), website: gv('swb'), contactName: gv('scon'), contactRole: gv('scor'), about: gv('sabt'), years: gv('syr'), employees: gv('semp'), clients: gv('scli'), apiKey: gv('sak'), model: gv('smod'), tone: gv('ston'), lang: gv('slng'), validity: gv('sval'), mEquipment: gv('meq'), mCloud: gv('mcl'), mManaged: gv('mms'), mProfessional: gv('mps'), mSecurity: gv('msc'), mOther: gv('mot'), currency: gv('scur'), tva: gv('stva'), payment: gv('spay'), scenario1: gv('ss1'), scenario2: gv('ss2'), scenario3: gv('ss3'), termsDelivery: gv('std'), termsWarranty: gv('stw'), termsObservations: gv('sto'), termsCta: gv('stc'), slideBg: gv('ssbg'), slideSize: gv('sssz'), footer: gv('sft'), accentColor: gv('ccol') || '#e8651a', partners: Array.from(document.querySelectorAll('.pc.active')).map(function(c) { return c.textContent.replace('x','').trim(); }) };
+  localStorage.setItem('ofertapro_settings', JSON.stringify(d));
+  updHdr(d); toast('ok', 'Setari salvate!');
+}
+function getSets() { try { return JSON.parse(localStorage.getItem('ofertapro_settings') || '{}'); } catch(e) { return {}; } }
+function loadSets() {
+  var d = getSets();
+  var sv = function(id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== 'undefined' && val !== null) el.value = val; };
+  sv('scn',d.companyName); sv('stag',d.tagline); sv('scui',d.cui); sv('sadr',d.address); sv('sem',d.email); sv('sph',d.phone); sv('swb',d.website); sv('scon',d.contactName); sv('scor',d.contactRole); sv('sabt',d.about); sv('syr',d.years); sv('semp',d.employees); sv('scli',d.clients); sv('sak',d.apiKey); sv('smod',d.model); sv('ston',d.tone); sv('slng',d.lang); sv('sval',d.validity); sv('meq',d.mEquipment); sv('mcl',d.mCloud); sv('mms',d.mManaged); sv('mps',d.mProfessional); sv('msc',d.mSecurity); sv('mot',d.mOther); sv('scur',d.currency); sv('stva',d.tva); sv('spay',d.payment); sv('ss1',d.scenario1); sv('ss2',d.scenario2); sv('ss3',d.scenario3); sv('std',d.termsDelivery); sv('stw',d.termsWarranty); sv('sto',d.termsObservations); sv('stc',d.termsCta); sv('ssbg',d.slideBg); sv('sssz',d.slideSize); sv('sft',d.footer);
+  if (d.accentColor) sv('ccol', d.accentColor);
+  if (d.apiKey) chkAPI();
+  updHdr(d);
+  var logo = localStorage.getItem('ofertapro_logo');
+  if (logo) { document.getElementById('lprev').src = logo; document.getElementById('lprev').style.display = 'block'; document.getElementById('lp').style.display = 'none'; }
+}
+function updHdr(d) { if (d && d.companyName) document.getElementById('hcn').textContent = d.companyName + (d.tagline ? ' - ' + d.tagline : ''); }
+function upLogo(e) { var f = e.target.files[0]; if (!f) return; var r = new FileReader(); r.onload = function(ev) { document.getElementById('lprev').src = ev.target.result; document.getElementById('lprev').style.display = 'block'; document.getElementById('lp').style.display = 'none'; localStorage.setItem('ofertapro_logo', ev.target.result); toast('ok', 'Logo incarcat!'); }; r.readAsDataURL(f); }
+function chkAPI() { var k = (document.getElementById('sak') || {}).value || ''; var dot = document.getElementById('adot'), txt = document.getElementById('atxt'); if (k.indexOf('sk-ant-') === 0) { dot.className = 'dot o'; txt.textContent = 'API key introdus'; } else { dot.className = 'dot'; txt.textContent = k.length ? 'Format invalid' : 'API neconectat'; } }
+function togAPI() { var i = document.getElementById('sak'); i.type = i.type === 'password' ? 'text' : 'password'; }
+function tpc(el) { el.classList.toggle('active'); }
+function addP() { var i = document.getElementById('cpa'); var val = i.value.trim(); if (!val) return; var c = document.createElement('div'); c.className = 'pc active'; c.onclick = function() { tpc(this); }; c.innerHTML = val + ' <span class="rm">x</span>'; document.getElementById('pch').appendChild(c); i.value = ''; }
+function selCol(el) { document.querySelectorAll('.csw').forEach(function(s) { s.classList.remove('selected'); }); el.classList.add('selected'); document.getElementById('ccol').value = el.dataset.color; }
+function apCol() { var v = document.getElementById('ccol').value; if (!v.match(/^#[0-9a-fA-F]{3,6}$/)) { toast('warn', 'Format hex invalid'); return; } toast('ok', 'Culoare: ' + v); }
+
+var toastTimer;
+function toast(type, msg) {
+  var el = document.getElementById('toast');
+  var icons = { ok: 'ok', warn: 'atentie', err: 'eroare' };
+  document.getElementById('ticon').textContent = icons[type] || type;
+  document.getElementById('tmsg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3500);
+}
+
+window.addEventListener('load', function() { try { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(e) {} loadSets(); loadDocs(); });
+</script>
+</body>
+</html>
