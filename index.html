@@ -968,26 +968,29 @@ function plRenderRows() {
   if (!tbody) return;
   if (!PL.rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; plUpdateTotals(); return; }
   empty.style.display = 'none';
-  tbody.innerHTML = PL.rows.map(function(row, idx) {
+  var html = '';
+  PL.rows.forEach(function(row, idx) {
     var costTotal = (row.costUnit * row.qty).toFixed(2);
     var sell = plSellPrice(row).toFixed(2);
-    var typeInfo = PL_TYPES[row.type] || PL_TYPES['hw'];
-    return '<tr data-id="' + row.id + '">' +
-      '<td style="color:var(--t3);font-family:'DM Mono',monospace;font-size:11px">' + (idx+1) + '</td>' +
-      '<td><input class="pl-in" value="' + esc(row.name) + '" onchange="plUpdateField('' + row.id + '','name',this.value)" placeholder="Denumire..."></td>' +
-      '<td><select class="pl-sel" onchange="plUpdateField('' + row.id + '','type',this.value)">' +
-        Object.keys(PL_TYPES).map(function(k) { return '<option value="' + k + '"' + (row.type===k?' selected':'') + '>' + PL_TYPES[k].label + '</option>'; }).join('') +
-      '</select></td>' +
-      '<td><input class="pl-in pl-num" type="number" min="1" value="' + row.qty + '" onchange="plUpdateField('' + row.id + '','qty',this.value)"></td>' +
-      '<td><input class="pl-in pl-num pl-cost" type="number" min="0" step="0.01" value="' + row.costUnit + '" onchange="plUpdateField('' + row.id + '','costUnit',this.value)"></td>' +
-      '<td class="pl-num pl-cost">' + costTotal + '</td>' +
-      '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[0] + '" onchange="plUpdateMargin('' + row.id + '',0,this.value)" style="color:var(--t2)"></td>' +
-      '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[1] + '" onchange="plUpdateMargin('' + row.id + '',1,this.value)" style="color:var(--or)"></td>' +
-      '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[2] + '" onchange="plUpdateMargin('' + row.id + '',2,this.value)" style="color:var(--gr)"></td>' +
-      '<td class="pl-num pl-sell" id="plsell-' + row.id + '">' + sell + '</td>' +
-      '<td><button class="btn bdan bsm" onclick="plDelRow('' + row.id + '')">✕</button></td>' +
-    '</tr>';
-  }).join('');
+    var rid = row.id;
+    var typeOpts = Object.keys(PL_TYPES).map(function(k) {
+      return '<option value="' + k + '"' + (row.type === k ? ' selected' : '') + '>' + PL_TYPES[k].label + '</option>';
+    }).join('');
+    html += '<tr>';
+    html += '<td style="color:var(--t3);font-size:11px">' + (idx+1) + '</td>';
+    html += '<td><input class="pl-in" value="' + esc(row.name) + '" data-rid="' + rid + '" data-field="name" onchange="plUpdateField(this.dataset.rid,this.dataset.field,this.value)" placeholder="Denumire..."></td>';
+    html += '<td><select class="pl-sel" data-rid="' + rid + '" data-field="type" onchange="plUpdateField(this.dataset.rid,this.dataset.field,this.value)">' + typeOpts + '</select></td>';
+    html += '<td><input class="pl-in pl-num" type="number" min="1" value="' + row.qty + '" data-rid="' + rid + '" data-field="qty" onchange="plUpdateField(this.dataset.rid,this.dataset.field,this.value)"></td>';
+    html += '<td><input class="pl-in pl-num pl-cost" type="number" min="0" step="0.01" value="' + row.costUnit + '" data-rid="' + rid + '" data-field="costUnit" onchange="plUpdateField(this.dataset.rid,this.dataset.field,this.value)"></td>';
+    html += '<td class="pl-num pl-cost">' + costTotal + '</td>';
+    html += '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[0] + '" data-rid="' + rid + '" data-sc="0" onchange="plUpdateMargin(this.dataset.rid,this.dataset.sc,this.value)" style="color:var(--t2)"></td>';
+    html += '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[1] + '" data-rid="' + rid + '" data-sc="1" onchange="plUpdateMargin(this.dataset.rid,this.dataset.sc,this.value)" style="color:var(--or)"></td>';
+    html += '<td><input class="pl-in pl-num" type="number" min="0" max="99" value="' + row.margins[2] + '" data-rid="' + rid + '" data-sc="2" onchange="plUpdateMargin(this.dataset.rid,this.dataset.sc,this.value)" style="color:var(--gr)"></td>';
+    html += '<td class="pl-num pl-sell" id="plsell-' + rid + '">' + sell + '</td>';
+    html += '<td><button class="btn bdan bsm" data-rid="' + rid + '" onclick="plDelRow(this.dataset.rid)">x</button></td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
   plUpdateTotals();
 }
 
