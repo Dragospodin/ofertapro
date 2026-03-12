@@ -6,8 +6,7 @@
 <title>OfertaPro v2.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-<script></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--n9:#080d1a;--n8:#0d1526;--n7:#111d33;--n6:#172040;--n5:#1e2d55;--n4:#2a3f72;--b:rgba(255,255,255,0.07);--bh:rgba(255,255,255,0.14);--or:#e8651a;--orl:#f07d35;--od:rgba(232,101,26,0.15);--og:rgba(232,101,26,0.3);--tx:#eef0f6;--t2:#8892b0;--t3:#4a5578;--gr:#2dd4a0;--gd:rgba(45,212,160,0.12);--rd:#f87171;--yw:#fbbf24;--yd:rgba(251,191,36,0.12);--bl:#60a5fa;--bd:rgba(96,165,250,0.12);--r:10px;--rl:16px;--sw:220px;--hh:60px}
@@ -1897,16 +1896,14 @@ async function offerGenerate() {
   setTimeout(async function() {
     try {
       var currency = PL.currency || 'EUR';
-      console.log('Step 1: Parsing template ZIP...');
 
-      // ── 1. Parse template ZIP ──────────────────────────────────────────
+      // -- 1. Parse template ZIP --
       var templateFiles = await readZipFiles(OFFER.templateB64);
-      console.log('Template files parsed:', Object.keys(templateFiles).length, Object.keys(templateFiles).slice(0,5));
 
-      // ── 2. Get selected slide indices from OFFER.selectedSlides ────────
+      // -- 2. Get selected slide indices from OFFER.selectedSlides --
       var selectedSlides = OFFER.selectedSlides || [];
 
-      // ── 3. Build new file map: start with PPTX_STATIC then overlay template ─
+      // -- 3. Build new file map: start with PPTX_STATIC then overlay template --
       var outFiles = {};
 
       // Start with known-good static files
@@ -1925,7 +1922,7 @@ async function offerGenerate() {
         }
       });
 
-      // ── 4. Copy selected template slides ───────────────────────────────
+      // -- 4. Copy selected template slides --
       var slideCount = 0;
       var allTemplateSlides = [];
       Object.keys(templateFiles).forEach(function(name) {
@@ -1955,7 +1952,7 @@ async function offerGenerate() {
         });
       });
 
-      // ── 5. Generate AI/content slides ──────────────────────────────────
+      // -- 5. Generate AI/content slides --
       subEl.textContent = 'Generare slide-uri conținut...';
       var builder = offerMakePptx();
 
@@ -2018,7 +2015,7 @@ async function offerGenerate() {
       if (assumptions.length) { termLines.push(''); termLines.push('Assumptions:'); assumptions.forEach(function(a){termLines.push('• '+a);}); }
       if (termLines.length) builder.addContentSlide('Termeni Comerciali & Assumptions', termLines.join('\n'));
 
-      // ── 6. Add generated slides to outFiles ────────────────────────────
+      // -- 6. Add generated slides to outFiles --
       var genFiles = builder.buildPPTX();
       var genSlides = [];
       Object.keys(genFiles).forEach(function(name) {
@@ -2032,7 +2029,7 @@ async function offerGenerate() {
         outFiles['ppt/slides/_rels/slide'+slideCount+'.xml.rels'] = genFiles['ppt/slides/_rels/slide'+gn+'.xml.rels'];
       });
 
-      // ── 7. Generate presentation.xml and rels ─────────────────────────
+      // -- 7. Generate presentation.xml and rels --
       subEl.textContent = 'Asamblare fișier...';
       var totalSlides = slideCount;
 
@@ -2083,7 +2080,7 @@ async function offerGenerate() {
       }
       outFiles['ppt/presentation.xml'] = {text: newPresXml};
 
-      // ── 8. Rebuild [Content_Types].xml ────────────────────────────────
+      // -- 8. Rebuild [Content_Types].xml --
       var tplCT = templateFiles['[Content_Types].xml'];
       var tplCTText = tplCT ? (tplCT.text || '') : '';
       // Remove old slide overrides
@@ -2095,9 +2092,7 @@ async function offerGenerate() {
       }
       outFiles['[Content_Types].xml'] = {text: baseCT.replace('</Types>', slideOverrides+'</Types>')};
 
-      // ── 9. Build ZIP and download
-      console.log('Total slides:', totalSlides, 'outFiles:', Object.keys(outFiles).length);
-      console.log('Files:', Object.keys(outFiles).slice(0,10)); ──────────────────────────────────────
+      // -- 9. Build ZIP and download
       var blob = buildZipBlob(outFiles);
       var client=(document.getElementById('off-client').value||'Oferta').replace(/[^a-zA-Z0-9]/g,'_');
       var nr=document.getElementById('off-nr').value||new Date().toISOString().slice(0,10);
