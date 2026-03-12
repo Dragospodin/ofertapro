@@ -1896,15 +1896,65 @@ function offerGenerate() {
   var subEl = document.getElementById('offer-gen-sub');
   var btn = document.getElementById('btn-final-gen');
   statusDiv.style.display = ''; iconEl.textContent = '⚡';
-  msgEl.textContent = 'Se generează PPTX...'; subEl.textContent = 'Construire slide-uri...';
+  msgEl.textContent = 'Se generează PPTX...'; subEl.textContent = 'Citire template...';
   btn.disabled = true;
 
   setTimeout(function() {
     try {
       var currency = PL.currency || 'EUR';
+
+      // ── 1. Parse template ZIP ──────────────────────────────────────────
+      var templateFiles = readZipFiles(OFFER.templateB64);
+
+      // ── 2. Get selected slide indices from OFFER.selectedSlides ────────
+      var selectedSlides = OFFER.selectedSlides || [];
+
+      // ── 3. Build new file map starting from template static files ──────
+      var outFiles = {};
+
+      // Copy all non-slide, non-presentation files from template
+      Object.keys(templateFiles).forEach(function(name) {
+        var skip = /^ppt\/slides\/slide\d/.test(name)
+                || name === 'ppt/presentation.xml'
+                || name === 'ppt/_rels/presentation.xml.rels'
+                || name === '[Content_Types].xml';
+        if (!skip) outFiles[name] = templateFiles[name];
+      });
+
+      // ── 4. Copy selected template slides ───────────────────────────────
+      var slideCount = 0;
+      var allTemplateSlides = [];
+      Object.keys(templateFiles).forEach(function(name) {
+        var m = name.match(/^ppt\/slides\/slide(\d+)\.xml$/);
+        if (m) allTemplateSlides.push(parseInt(m[1]));
+      });
+      allTemplateSlides.sort(function(a,b){return a-b;});
+
+      selectedSlides.forEach(function(tplIdx) {
+        slideCount++;
+        var tplNum = allTemplateSlides[tplIdx];
+        if (!tplNum) return;
+        var outNum = slideCount;
+        // Copy slide XML
+        outFiles['ppt/slides/slide'+outNum+'.xml'] = templateFiles['ppt/slides/slide'+tplNum+'.xml'];
+        // Copy slide rels (update media references if needed)
+        var relsKey = 'ppt/slides/_rels/slide'+tplNum+'.xml.rels';
+        var outRels = templateFiles[relsKey] || {text: defaultSlideRels()};
+        outFiles['ppt/slides/_rels/slide'+outNum+'.xml.rels'] = outRels;
+        // Copy any media referenced by this slide
+        var relsText = outRels.text || '';
+        var mediaRefs = relsText.match(/Target="\.\.\/media\/[^"]+"/g) || [];
+        mediaRefs.forEach(function(ref) {
+          var mname = ref.replace('Target="../', 'ppt/');
+          mname = mname.replace('"', '');
+          if (templateFiles[mname]) outFiles[mname] = templateFiles[mname];
+        });
+      });
+
+      // ── 5. Generate AI/content slides ──────────────────────────────────
+      subEl.textContent = 'Generare slide-uri conținut...';
       var builder = offerMakePptx();
 
-      // 1. Slide: Cerinte
       var needs = document.getElementById('off-needs').value;
       var challenges = (document.getElementById('off-challenges').value||'').split('\n').filter(Boolean);
       if (needs || challenges.length) {
@@ -1913,32 +1963,24 @@ function offerGenerate() {
         builder.addContentSlide('Înțelegerea Cerințelor', body.trim(), document.getElementById('off-client').value);
       }
 
-      // 2. Slide: Solutie
       var approach = (document.getElementById('off-approach').value||'').split('\n').filter(Boolean);
       var benefits = (document.getElementById('off-benefits').value||'').split('\n').filter(Boolean);
       if (approach.length || benefits.length) {
         builder.addTwoColSlide('Soluția Propusă', 'Abordare', approach.slice(0,7), 'Beneficii', benefits.slice(0,7));
       }
 
-      // 3. Slide: Timeline
       var tl = document.getElementById('off-timeline').value;
-      if (tl.trim()) {
-        builder.addContentSlide('Plan de Implementare', tl);
-      }
+      if (tl.trim()) builder.addContentSlide('Plan de Implementare', tl);
 
-      // 4. Slide: Echipa
       var team = document.getElementById('off-team').value;
-      if (team.trim()) {
-        builder.addContentSlide('Echipa Dedicată', team);
-      }
+      if (team.trim()) builder.addContentSlide('Echipa Dedicată', team);
 
-      // 5. Slide: Propunere Comerciala
       if (PL.rows && PL.rows.length) {
         var typeCfg = {
-          hw: {label:'Hardware', headers:['Denumire','Cod Produs','Cant.','Preț Unitar','Total']},
-          sw: {label:'Software / Licențe', headers:['Produs','SKU','Cant.','Preț Unitar','Total']},
-          svc:{label:'Servicii', headers:['Serviciu / Rol','Zile','Tarif/zi','Total']},
-          cl: {label:'Cloud / Subscripții', headers:['Serviciu','Vendor','Cost/lună','Luni','Total']}
+          hw:  {label:'Hardware',           headers:['Denumire','Cod Produs','Cant.','Preț Unitar','Total']},
+          sw:  {label:'Software / Licențe', headers:['Produs','SKU','Cant.','Preț Unitar','Total']},
+          svc: {label:'Servicii',           headers:['Serviciu / Rol','Zile','Tarif/zi','Total']},
+          cl:  {label:'Cloud / Subscripții',headers:['Serviciu','Vendor','Cost/lună','Luni','Total']}
         };
         var groups = [];
         Object.keys(typeCfg).forEach(function(t) {
@@ -1946,12 +1988,12 @@ function offerGenerate() {
           if (!rows.length) return;
           var cfg = typeCfg[t];
           var tableRows = rows.map(function(r) {
-            var sp = parseFloat(r.sellPrice)||0, qty = parseFloat(r.qty)||1;
-            var total = (sp * qty).toLocaleString('ro-RO',{minimumFractionDigits:2});
-            var up = sp.toLocaleString('ro-RO',{minimumFractionDigits:2});
-            if (t==='hw'||t==='sw') return [r.name||'', r.code||'', qty, up, total];
-            if (t==='svc') { var days=parseFloat(r.qty)||1, rate=sp; return [r.name||'', days, rate.toLocaleString('ro-RO',{minimumFractionDigits:2}), (days*rate).toLocaleString('ro-RO',{minimumFractionDigits:2})]; }
-            return [r.name||'', r.vendor||'', up, qty, total];
+            var sp=parseFloat(r.sellPrice)||0, qty=parseFloat(r.qty)||1;
+            var tot=(sp*qty).toLocaleString('ro-RO',{minimumFractionDigits:2});
+            var up=sp.toLocaleString('ro-RO',{minimumFractionDigits:2});
+            if (t==='hw'||t==='sw') return [r.name||'',r.code||'',qty,up,tot];
+            if (t==='svc') { var d=qty,rate=sp; return [r.name||'',d,rate.toLocaleString('ro-RO',{minimumFractionDigits:2}),(d*rate).toLocaleString('ro-RO',{minimumFractionDigits:2})]; }
+            return [r.name||'',r.vendor||'',up,qty,tot];
           });
           groups.push({label:cfg.label, headers:cfg.headers, rows:tableRows});
         });
@@ -1959,50 +2001,179 @@ function offerGenerate() {
         builder.addPriceSlide(groups, currency, total);
       }
 
-      // 6. Slide: Termeni
       var termLines = [];
-      var validity = document.getElementById('off-validity').value;
-      var payment = document.getElementById('off-payment').value;
-      var delivery = document.getElementById('off-delivery').value;
-      var warranty = document.getElementById('off-warranty').value;
-      if (validity) termLines.push('Valabilitate ofertă: ' + validity);
-      if (payment) termLines.push('Termeni de plată: ' + payment);
-      if (delivery) termLines.push('Livrare: ' + delivery);
-      if (warranty) termLines.push('Garanție: ' + warranty);
-      var assumptions = (document.getElementById('off-assumptions').value||'').split('\n').filter(Boolean);
-      if (assumptions.length) {
-        termLines.push('');
-        termLines.push('Assumptions:');
-        assumptions.forEach(function(a){ termLines.push('• ' + a); });
+      var validity=document.getElementById('off-validity').value;
+      var payment=document.getElementById('off-payment').value;
+      var delivery=document.getElementById('off-delivery').value;
+      var warranty=document.getElementById('off-warranty').value;
+      if (validity) termLines.push('Valabilitate ofertă: '+validity);
+      if (payment)  termLines.push('Termeni de plată: '+payment);
+      if (delivery) termLines.push('Livrare: '+delivery);
+      if (warranty) termLines.push('Garanție: '+warranty);
+      var assumptions=(document.getElementById('off-assumptions').value||'').split('\n').filter(Boolean);
+      if (assumptions.length) { termLines.push(''); termLines.push('Assumptions:'); assumptions.forEach(function(a){termLines.push('• '+a);}); }
+      if (termLines.length) builder.addContentSlide('Termeni Comerciali & Assumptions', termLines.join('\n'));
+
+      // ── 6. Add generated slides to outFiles ────────────────────────────
+      var genFiles = builder.buildPPTX();
+      var genSlides = [];
+      Object.keys(genFiles).forEach(function(name) {
+        var m = name.match(/^ppt\/slides\/slide(\d+)\.xml$/);
+        if (m) genSlides.push(parseInt(m[1]));
+      });
+      genSlides.sort(function(a,b){return a-b;});
+      genSlides.forEach(function(gn) {
+        slideCount++;
+        outFiles['ppt/slides/slide'+slideCount+'.xml'] = genFiles['ppt/slides/slide'+gn+'.xml'];
+        outFiles['ppt/slides/_rels/slide'+slideCount+'.xml.rels'] = genFiles['ppt/slides/_rels/slide'+gn+'.xml.rels'];
+      });
+
+      // ── 7. Generate presentation.xml and rels ─────────────────────────
+      subEl.textContent = 'Asamblare fișier...';
+      var totalSlides = slideCount;
+
+      // Parse template presentation.xml to get its rels (rId mapping)
+      var tplPresRels = templateFiles['ppt/_rels/presentation.xml.rels'];
+      var tplPresRelsText = tplPresRels ? (tplPresRels.text || '') : '';
+      // Find highest non-slide rId
+      var maxRid = 6;
+      var ridMatches = tplPresRelsText.match(/Id="rId(\d+)"/g) || [];
+      ridMatches.forEach(function(m) {
+        var n = parseInt(m.replace(/\D/g,''));
+        if (n > maxRid) maxRid = n;
+      });
+      // Remove slide relationships from template rels
+      var baseRels = tplPresRelsText.replace(/<Relationship[^>]*slide[^>]*\/>/g,'').replace(/<Relationship[^>]*slide[^\/]*\/Relationship>/g,'');
+
+      var slideRelEntries = '';
+      for (var si=1; si<=totalSlides; si++) {
+        slideRelEntries += '<Relationship Id="rId'+(maxRid+si)+'" '
+          + 'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" '
+          + 'Target="slides/slide'+si+'.xml"/>';
       }
-      if (termLines.length) {
-        builder.addContentSlide('Termeni Comerciali & Assumptions', termLines.join('\n'));
+      // Rebuild rels file
+      var newPresRels = baseRels.replace('</Relationships>', slideRelEntries + '</Relationships>');
+      outFiles['ppt/_rels/presentation.xml.rels'] = {text: newPresRels};
+
+      // Build new presentation.xml sldIdLst
+      var sldIdLst = '';
+      for (var si2=1; si2<=totalSlides; si2++) {
+        sldIdLst += '<p:sldId id="'+(255+si2)+'" r:id="rId'+(maxRid+si2)+'"/>';
       }
 
-      // Build & Download
-      subEl.textContent = 'Se comprimă fișierul...';
-      var files = builder.buildPPTX();
-      var blob = buildZipBlob(files);
-      var client = (document.getElementById('off-client').value||'Oferta').replace(/[^a-zA-Z0-9]/g,'_');
-      var nr = document.getElementById('off-nr').value || new Date().toISOString().slice(0,10);
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = 'Oferta_' + client + '_' + nr + '.pptx';
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a);
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+      // Parse template presentation.xml to keep its settings
+      var tplPresXml = templateFiles['ppt/presentation.xml'];
+      var tplPresText = tplPresXml ? (tplPresXml.text || '') : '';
+      var newPresXml;
+      if (tplPresText && tplPresText.indexOf('<p:sldIdLst>') >= 0) {
+        newPresXml = tplPresText.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/, '<p:sldIdLst>'+sldIdLst+'</p:sldIdLst>');
+      } else {
+        newPresXml = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>"
+          + "<p:presentation xmlns:a='http://schemas.openxmlformats.org/drawingml/2006/main' "
+          + "xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' "
+          + "xmlns:p='http://schemas.openxmlformats.org/presentationml/2006/main' saveSubsetFonts='1'>"
+          + "<p:sldMasterIdLst><p:sldMasterId id='2147483648' r:id='rId1'/></p:sldMasterIdLst>"
+          + "<p:sldIdLst>"+sldIdLst+"</p:sldIdLst>"
+          + "<p:sldSz cx='12188952' cy='6858000'/><p:notesSz cx='6858000' cy='9144000'/>"
+          + "</p:presentation>";
+      }
+      outFiles['ppt/presentation.xml'] = {text: newPresXml};
 
-      iconEl.textContent = '✅'; msgEl.textContent = 'PPTX generat cu succes!';
-      subEl.textContent = 'Fișierul a fost descărcat automat';
-      btn.disabled = false;
+      // ── 8. Rebuild [Content_Types].xml ────────────────────────────────
+      var tplCT = templateFiles['[Content_Types].xml'];
+      var tplCTText = tplCT ? (tplCT.text || '') : '';
+      // Remove old slide overrides
+      var baseCT = tplCTText.replace(/<Override PartName="\/ppt\/slides\/slide[^"]*"[^\/]*\/>/g,'');
+      var slideOverrides = '';
+      for (var si3=1; si3<=totalSlides; si3++) {
+        slideOverrides += '<Override PartName="/ppt/slides/slide'+si3+'.xml" '
+          + 'ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
+      }
+      outFiles['[Content_Types].xml'] = {text: baseCT.replace('</Types>', slideOverrides+'</Types>')};
+
+      // ── 9. Build ZIP and download ──────────────────────────────────────
+      var blob = buildZipBlob(outFiles);
+      var client=(document.getElementById('off-client').value||'Oferta').replace(/[^a-zA-Z0-9]/g,'_');
+      var nr=document.getElementById('off-nr').value||new Date().toISOString().slice(0,10);
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a'); a.href=url; a.download='Oferta_'+client+'_'+nr+'.pptx';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(url);},1000);
+
+      iconEl.textContent='✅'; msgEl.textContent='PPTX generat cu succes!';
+      subEl.textContent='Fișierul a fost descărcat. Template: '+selectedSlides.length+' slide-uri + '+genSlides.length+' generate.';
+      btn.disabled=false;
       toast('ok','Ofertă PPTX generată și descărcată!');
     } catch(err) {
-      iconEl.textContent = '❌'; msgEl.textContent = 'Eroare la generare';
-      subEl.textContent = err.message; btn.disabled = false;
+      iconEl.textContent='❌'; msgEl.textContent='Eroare la generare';
+      subEl.textContent=err.message; btn.disabled=false;
       toast('err','Eroare: '+err.message);
       console.error(err);
     }
   }, 100);
+}
+
+// Parse a PPTX (base64) into a file map {name: {text|b64}}
+function readZipFiles(b64) {
+  function b64ToBytes(b64str) {
+    var bin=atob(b64str), bytes=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    return bytes;
+  }
+
+  var bytes = b64ToBytes(b64);
+  var view = new DataView(bytes.buffer);
+  var files = {};
+
+  // Parse ZIP local file headers
+  var i = 0;
+  while (i < bytes.length - 4) {
+    var sig = view.getUint32(i, true);
+    if (sig === 0x04034B50) { // Local file header
+      var nameLen = view.getUint16(i+26, true);
+      var extraLen = view.getUint16(i+28, true);
+      var compSize = view.getUint32(i+18, true);
+      var compMethod = view.getUint16(i+8, true);
+      var nameBytes = bytes.slice(i+30, i+30+nameLen);
+      var name = new TextDecoder().decode(nameBytes);
+      var dataStart = i+30+nameLen+extraLen;
+      var dataBytes = bytes.slice(dataStart, dataStart+compSize);
+
+      if (compMethod === 0) { // Stored (no compression)
+        // Try to decode as text
+        try {
+          var text = new TextDecoder('utf-8', {fatal:true}).decode(dataBytes);
+          files[name] = {text: text};
+        } catch(e) {
+          // Binary file - store as base64
+          var bin2 = '';
+          for(var k=0;k<dataBytes.length;k++) bin2+=String.fromCharCode(dataBytes[k]);
+          files[name] = {b64: btoa(bin2)};
+        }
+      } else if (compMethod === 8) { // Deflate
+        // Use DecompressionStream if available
+        try {
+          // Store compressed for now - will decompress async
+          files[name] = {compressed: dataBytes, method: 8};
+        } catch(e) {
+          files[name] = {b64: btoa(String.fromCharCode.apply(null, dataBytes))};
+        }
+      }
+      i = dataStart + compSize;
+    } else if (sig === 0x02014B50 || sig === 0x06054B50) {
+      break; // Central directory or EOCD - stop
+    } else {
+      i++;
+    }
+  }
+  return files;
+}
+
+function defaultSlideRels() {
+  return "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>"
+    + "<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>"
+    + "<Relationship Id='rId1' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout' Target='../slideLayouts/slideLayout7.xml'/>"
+    + "</Relationships>";
 }
 
 </script>
