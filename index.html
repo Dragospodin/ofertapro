@@ -1597,229 +1597,209 @@ function offerBuildSummary() {
 }
 
 function offerMakePptx() {
-  // Custom PPTX builder using raw XML - no external library needed
-  var NAVY='092141', ORANGE='EC6907', WHITE='FFFFFF', GRAY='CCD5E8', NAVY_MED='0B315F';
-  
+  var NAVY="092141", ORANGE="EC6907", WHITE="FFFFFF", GRAY="CCD5E8", NAVY_MED="0B315F";
   var slides = [];
-  
+  var shapeId = 2;
+
   function emu(inches) { return Math.round(inches * 914400); }
-  function pt(points) { return points * 12700; }
-  
-  function xmlEscape(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+
+  function xmlEsc(s) {
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
-  
+
   function makeSlideXML(shapes) {
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
       + 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
       + 'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">'
-      + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
-      + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
-      + shapes.join('')
-      + '</p:spTree></p:cSld></p:sld>';
+      + '<p:cSld><p:spTree>'
+      + '<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
+      + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/>'
+      + '<a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
+      + shapes.join("")
+      + "</p:spTree></p:cSld></p:sld>";
   }
-  
-  var shapeId = 2;
-  
+
   function makeRect(x, y, w, h, color) {
     var id = shapeId++;
-    return '<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="rect'+id+'"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr/></p:nvSpPr>'
-      + '<p:spPr><a:xfrm><a:off x="'+emu(x)+'" y="'+emu(y)+'"/><a:ext cx="'+emu(w)+'" cy="'+emu(h)+'"/></a:xfrm>'
-      + '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
-      + '<a:solidFill><a:srgbClr val="'+color+'"/></a:solidFill>'
-      + '<a:ln><a:noFill/></a:ln></p:spPr>'
-      + '<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>';
+    return "<p:sp><p:nvSpPr><p:cNvPr id=\"" + id + "\" name=\"r" + id + "\"/>"
+      + "<p:cNvSpPr><a:spLocks noGrp=\"1\"/></p:cNvSpPr><p:nvPr/></p:nvSpPr>"
+      + "<p:spPr><a:xfrm><a:off x=\"" + emu(x) + "\" y=\"" + emu(y) + "\"/>"
+      + "<a:ext cx=\"" + emu(w) + "\" cy=\"" + emu(h) + "\"/></a:xfrm>"
+      + "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>"
+      + "<a:solidFill><a:srgbClr val=\"" + color + "\"/></a:solidFill>"
+      + "<a:ln><a:noFill/></a:ln></p:spPr>"
+      + "<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>";
   }
-  
-  function makeTextBox(x, y, w, h, text, fontSize, bold, color, wrap) {
+
+  function makePara(line, fontSize, bold, color) {
+    if (!String(line).trim()) return "<a:p/>";
+    return "<a:p><a:r>"
+      + "<a:rPr lang=\"ro-RO\" sz=\"" + Math.round(fontSize*100) + "\" b=\"" + (bold?"1":"0") + "\" dirty=\"0\">"
+      + "<a:solidFill><a:srgbClr val=\"" + color + "\"/></a:solidFill>"
+      + "<a:latin typeface=\"Century Gothic\"/></a:rPr>"
+      + "<a:t>" + xmlEsc(line) + "</a:t>"
+      + "</a:r></a:p>";
+  }
+
+  function makeTextBox(x, y, w, h, text, fontSize, bold, color) {
     var id = shapeId++;
-    var lines = String(text||'').split('
-');
-    var paras = lines.map(function(line) {
-      if (!line.trim()) return '<a:p/>';
-      return '<a:p><a:r><a:rPr lang="ro-RO" sz="'+Math.round(fontSize*100)+'" b="'+(bold?'1':'0')+'" dirty="0">'
-        + '<a:solidFill><a:srgbClr val="'+color+'"/></a:solidFill>'
-        + '<a:latin typeface="Century Gothic"/></a:rPr>'
-        + '<a:t>'+xmlEscape(line)+'</a:t></a:r></a:p>';
-    }).join('');
-    return '<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="tb'+id+'"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>'
-      + '<p:spPr><a:xfrm><a:off x="'+emu(x)+'" y="'+emu(y)+'"/><a:ext cx="'+emu(w)+'" cy="'+emu(h)+'"/></a:xfrm>'
-      + '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr>'
-      + '<p:txBody><a:bodyPr wrap="'+(wrap!==false?'square':'none')+'" lIns="0" rIns="0" tIns="0" bIns="0"><a:normAutofit/></a:bodyPr>'
-      + '<a:lstStyle/>' + paras + '</p:txBody></p:sp>';
+    var paras = String(text||"").split("\n").map(function(l){ return makePara(l, fontSize, bold, color); }).join("");
+    return "<p:sp><p:nvSpPr><p:cNvPr id=\"" + id + "\" name=\"t" + id + "\"/>"
+      + "<p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr>"
+      + "<p:spPr><a:xfrm><a:off x=\"" + emu(x) + "\" y=\"" + emu(y) + "\"/>"
+      + "<a:ext cx=\"" + emu(w) + "\" cy=\"" + emu(h) + "\"/></a:xfrm>"
+      + "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/></p:spPr>"
+      + "<p:txBody><a:bodyPr wrap=\"square\" lIns=\"0\" rIns=\"0\" tIns=\"0\" bIns=\"0\">"
+      + "<a:normAutofit/></a:bodyPr><a:lstStyle/>"
+      + paras + "</p:txBody></p:sp>";
   }
 
   function addContentSlide(title, bodyText, subtitle) {
     shapeId = 2;
-    var shapes = [];
-    shapes.push(makeRect(0, 0, 13.33, 0.13, ORANGE));  // top bar
-    shapes.push(makeRect(0, 0, 13.33, 7.5, NAVY));      // bg - add as first
-    shapes.push(makeTextBox(0.5, 0.15, 12.3, 0.8, title.toUpperCase(), 22, true, WHITE));
-    if (subtitle) shapes.push(makeTextBox(0.5, 0.88, 12.3, 0.4, subtitle, 12, false, GRAY));
-    shapes.push(makeRect(0.5, subtitle ? 1.35 : 1.05, 12.3, 0.03, ORANGE));
-    shapes.push(makeTextBox(0.5, subtitle ? 1.45 : 1.15, 12.3, 5.8, bodyText, 13, false, GRAY, true));
-    // bg must be first - reorder
-    shapes = [shapes[1], shapes[0], shapes[2], shapes[3], shapes[4], shapes[5]].filter(Boolean);
-    slides.push(makeSlideXML(shapes));
+    var s = [];
+    s.push(makeRect(0, 0, 13.33, 7.5, NAVY));
+    s.push(makeRect(0, 0, 13.33, 0.13, ORANGE));
+    s.push(makeTextBox(0.5, 0.15, 12.3, 0.8, title.toUpperCase(), 22, true, WHITE));
+    var bodyY = 1.1;
+    if (subtitle) { s.push(makeTextBox(0.5, 0.9, 12.3, 0.35, subtitle, 12, false, GRAY)); bodyY = 1.4; }
+    s.push(makeRect(0.5, bodyY-0.08, 12.3, 0.03, ORANGE));
+    s.push(makeTextBox(0.5, bodyY, 12.3, 7.5-bodyY-0.2, bodyText, 13, false, GRAY));
+    slides.push(makeSlideXML(s));
   }
 
   function addTwoColSlide(title, leftTitle, leftItems, rightTitle, rightItems) {
     shapeId = 2;
-    var shapes = [];
-    shapes.push(makeRect(0, 0, 13.33, 7.5, NAVY));
-    shapes.push(makeRect(0, 0, 13.33, 0.13, ORANGE));
-    shapes.push(makeTextBox(0.5, 0.15, 12.3, 0.8, title.toUpperCase(), 22, true, WHITE));
-    shapes.push(makeRect(0.5, 1.05, 12.3, 0.03, ORANGE));
-    shapes.push(makeTextBox(0.5, 1.15, 5.9, 0.4, leftTitle.toUpperCase(), 11, true, ORANGE));
-    shapes.push(makeTextBox(0.5, 1.65, 5.9, 5.5, leftItems.map(function(i){return '• '+i;}).join('
-'), 12, false, GRAY));
-    shapes.push(makeRect(6.55, 1.15, 0.03, 5.8, NAVY_MED));
-    shapes.push(makeTextBox(6.7, 1.15, 5.9, 0.4, rightTitle.toUpperCase(), 11, true, ORANGE));
-    shapes.push(makeTextBox(6.7, 1.65, 5.9, 5.5, rightItems.map(function(i){return '• '+i;}).join('
-'), 12, false, GRAY));
-    slides.push(makeSlideXML(shapes));
+    var s = [];
+    s.push(makeRect(0, 0, 13.33, 7.5, NAVY));
+    s.push(makeRect(0, 0, 13.33, 0.13, ORANGE));
+    s.push(makeTextBox(0.5, 0.15, 12.3, 0.8, title.toUpperCase(), 22, true, WHITE));
+    s.push(makeRect(0.5, 1.05, 12.3, 0.03, ORANGE));
+    s.push(makeTextBox(0.5, 1.12, 5.9, 0.35, leftTitle.toUpperCase(), 11, true, ORANGE));
+    s.push(makeTextBox(0.5, 1.55, 5.9, 5.7, leftItems.map(function(i){ return "• "+i; }).join("\n"), 12, false, GRAY));
+    s.push(makeRect(6.55, 1.1, 0.03, 5.9, NAVY_MED));
+    s.push(makeTextBox(6.7, 1.12, 5.9, 0.35, rightTitle.toUpperCase(), 11, true, ORANGE));
+    s.push(makeTextBox(6.7, 1.55, 5.9, 5.7, rightItems.map(function(i){ return "• "+i; }).join("\n"), 12, false, GRAY));
+    slides.push(makeSlideXML(s));
   }
 
   function addPriceSlide(groups, currency, total) {
     shapeId = 2;
-    var shapes = [];
-    shapes.push(makeRect(0, 0, 13.33, 7.5, NAVY));
-    shapes.push(makeRect(0, 0, 13.33, 0.13, ORANGE));
-    shapes.push(makeTextBox(0.5, 0.15, 10, 0.8, 'PROPUNERE COMERCIALA', 22, true, WHITE));
-    shapes.push(makeTextBox(11, 0.15, 2, 0.8, currency, 13, false, ORANGE));
+    var s = [];
+    s.push(makeRect(0, 0, 13.33, 7.5, NAVY));
+    s.push(makeRect(0, 0, 13.33, 0.13, ORANGE));
+    s.push(makeTextBox(0.5, 0.15, 10, 0.75, "PROPUNERE COMERCIALA", 22, true, WHITE));
+    s.push(makeTextBox(11, 0.15, 2, 0.75, currency, 14, false, ORANGE));
     var y = 1.05;
     groups.forEach(function(group) {
       if (!group.rows || !group.rows.length) return;
-      shapes.push(makeRect(0.5, y, 12.3, 0.28, NAVY_MED));
-      shapes.push(makeTextBox(0.6, y+0.04, 8, 0.22, group.label.toUpperCase(), 10, true, ORANGE));
-      y += 0.32;
-      // Headers row
+      s.push(makeRect(0.5, y, 12.3, 0.28, NAVY_MED));
+      s.push(makeTextBox(0.6, y+0.03, 8, 0.24, group.label.toUpperCase(), 10, true, ORANGE));
+      y += 0.3;
       var colW = 12.3 / group.headers.length;
       group.headers.forEach(function(h, ci) {
-        shapes.push(makeRect(0.5 + ci*colW, y, colW-0.02, 0.3, ORANGE));
-        shapes.push(makeTextBox(0.52 + ci*colW, y+0.03, colW-0.06, 0.26, h, 9, true, WHITE));
+        s.push(makeRect(0.5+ci*colW, y, colW-0.02, 0.28, ORANGE));
+        s.push(makeTextBox(0.52+ci*colW, y+0.03, colW-0.06, 0.24, h, 9, true, WHITE));
       });
-      y += 0.32;
-      group.rows.slice(0,8).forEach(function(row, ri) {
-        var rowColor = ri%2===0 ? NAVY_MED : NAVY;
+      y += 0.3;
+      group.rows.slice(0,7).forEach(function(row, ri) {
+        var rc = ri%2===0 ? NAVY_MED : NAVY;
         row.forEach(function(cell, ci) {
-          shapes.push(makeRect(0.5 + ci*colW, y, colW-0.02, 0.3, rowColor));
-          shapes.push(makeTextBox(0.52 + ci*colW, y+0.03, colW-0.06, 0.26, String(cell), 8, false, WHITE));
+          s.push(makeRect(0.5+ci*colW, y, colW-0.02, 0.28, rc));
+          s.push(makeTextBox(0.52+ci*colW, y+0.03, colW-0.06, 0.24, String(cell), 8, false, WHITE));
         });
-        y += 0.32;
+        y += 0.3;
       });
-      y += 0.15;
+      y += 0.1;
     });
     if (total) {
-      shapes.push(makeRect(7.5, y, 5.3, 0.4, ORANGE));
-      shapes.push(makeTextBox(7.6, y+0.06, 5.1, 0.32, 'TOTAL: ' + total.toLocaleString('ro-RO',{minimumFractionDigits:2}) + ' ' + currency, 14, true, WHITE));
+      s.push(makeRect(7.5, y, 5.3, 0.38, ORANGE));
+      s.push(makeTextBox(7.6, y+0.05, 5.1, 0.3, "TOTAL: "+total.toLocaleString("ro-RO",{minimumFractionDigits:2})+" "+currency, 14, true, WHITE));
     }
-    slides.push(makeSlideXML(shapes));
+    slides.push(makeSlideXML(s));
   }
 
   function buildPPTX() {
-    // Build PPTX as base64 using XLSX's zip capabilities
-    var slideCount = slides.length;
-    
-    // Use XLSX.utils if available, otherwise use manual zip
-    var zip = new XLSX.utils.book_new ? null : null;
-    
-    // Build using manual approach with data URIs
-    // Create a simple zip structure
+    var sc = slides.length;
     var files = {};
-    
-    // [Content_Types].xml
-    var contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+
+    files["[Content_Types].xml"] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
       + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
       + '<Default Extension="xml" ContentType="application/xml"/>'
       + '<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>'
-      + '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>'
       + '<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>'
-      + slides.map(function(_,i){ return '<Override PartName="/ppt/slides/slide'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>'; }).join('')
-      + '</Types>';
-    files['[Content_Types].xml'] = contentTypes;
-    
-    // _rels/.rels
-    files['_rels/.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>'
+      + slides.map(function(_,i){ return '<Override PartName="/ppt/slides/slide'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>'; }).join("")
+      + "</Types>";
+
+    files["_rels/.rels"] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>'
-      + '</Relationships>';
-    
-    // ppt/presentation.xml
-    var sldIdLst = slides.map(function(_,i){ return '<p:sldId id="'+(256+i)+'" r:id="rId'+(i+1)+'"/>'; }).join('');
-    files['ppt/presentation.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + "</Relationships>";
+
+    var sldIds = slides.map(function(_,i){ return '<p:sldId id="'+(256+i)+'" r:id="rId'+(i+1)+'"/>'; }).join("");
+    files["ppt/presentation.xml"] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
       + 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
       + 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
-      + '<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId'+(slideCount+1)+'"/></p:sldMasterIdLst>'
+      + '<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId'+(sc+1)+'"/></p:sldMasterIdLst>'
       + '<p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/>'
-      + '<p:sldIdLst>' + sldIdLst + '</p:sldIdLst></p:presentation>';
-    
-    // ppt/_rels/presentation.xml.rels
-    var presRels = slides.map(function(_,i){ 
-      return '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+(i+1)+'.xml"/>'; 
-    }).join('');
-    presRels += '<Relationship Id="rId'+(slideCount+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>';
-    files['ppt/_rels/presentation.xml.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + "<p:sldIdLst>" + sldIds + "</p:sldIdLst></p:presentation>";
+
+    var presRels = slides.map(function(_,i){
+      return '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+(i+1)+'.xml"/>';
+    }).join("") + '<Relationship Id="rId'+(sc+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>';
+    files["ppt/_rels/presentation.xml.rels"] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-      + presRels + '</Relationships>';
-    
-    // Slides
-    slides.forEach(function(slideXml, i) {
-      var sn = i+1;
-      files['ppt/slides/slide'+sn+'.xml'] = slideXml;
-      files['ppt/slides/_rels/slide'+sn+'.xml.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + presRels + "</Relationships>";
+
+    slides.forEach(function(xml, i) {
+      var n = i+1;
+      files["ppt/slides/slide"+n+".xml"] = xml;
+      files["ppt/slides/_rels/slide"+n+".xml.rels"] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
         + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>'
-        + '</Relationships>';
+        + "</Relationships>";
     });
-    
-    // Minimal slide layout
+
     var layoutXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<p:sldLayout xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
       + 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
       + 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" type="blank">'
       + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
-      + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
+      + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/>'
+      + '<a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
       + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>';
-    files['ppt/slideLayouts/slideLayout1.xml'] = layoutXml;
-    files['ppt/slideLayouts/_rels/slideLayout1.xml.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    files["ppt/slideLayouts/slideLayout1.xml"] = layoutXml;
+    files["ppt/slideLayouts/_rels/slideLayout1.xml.rels"] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>'
-      + '</Relationships>';
-    
-    // Minimal slide master
-    files['ppt/slideMasters/slideMaster1.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + "</Relationships>";
+
+    files["ppt/slideMasters/slideMaster1.xml"] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<p:sldMaster xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
       + 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
       + 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
       + '<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
-      + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
+      + '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/>'
+      + '<a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'
       + '</p:spTree></p:cSld>'
       + '<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>'
       + '<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst>'
       + '<p:txStyles><p:titleStyle><a:lstStyle/></p:titleStyle><p:bodyStyle><a:lstStyle/></p:bodyStyle><p:otherStyle><a:lstStyle/></p:otherStyle></p:txStyles>'
-      + '</p:sldMaster>';
-    files['ppt/slideMasters/_rels/slideMaster1.xml.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + "</p:sldMaster>";
+    files["ppt/slideMasters/_rels/slideMaster1.xml.rels"] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>'
-      + '</Relationships>';
-    
+      + "</Relationships>";
+
     return files;
   }
 
-  return { 
-    addContentSlide: addContentSlide, 
-    addTwoColSlide: addTwoColSlide, 
-    addPriceSlide: addPriceSlide,
-    buildPPTX: buildPPTX
-  };
+  return { addContentSlide:addContentSlide, addTwoColSlide:addTwoColSlide, addPriceSlide:addPriceSlide, buildPPTX:buildPPTX };
 }
 
-// Simple ZIP builder for PPTX (no external library needed)
 function buildZipBlob(files) {
   // Use XLSX's internal ZIP if available
   if (typeof XLSX !== 'undefined' && XLSX.utils) {
