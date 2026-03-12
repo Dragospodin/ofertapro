@@ -1597,7 +1597,7 @@ function offerBuildSummary() {
 }
 
 function offerMakePptx() {
-  var pptx = new PptxGenJS();
+  var pptx = new pptxgen();
   pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5
   pptx.defineLayout({ name:'WIDE', width:13.33, height:7.5 });
   pptx.layout = 'WIDE';
