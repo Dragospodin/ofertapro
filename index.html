@@ -700,15 +700,126 @@ function aiExtract(doc, apiKey, model) {
   });
 }
 
+function detectExcelType(sheets) {
+  // Detecteaza tipul de Excel: cisco_quote, services, generic
+  var sheetNames = Object.keys(sheets);
+  for (var i = 0; i < sheetNames.length; i++) {
+    var rows = sheets[sheetNames[i]];
+    for (var j = 0; j < Math.min(rows.length, 25); j++) {
+      var row = rows[j];
+      var rowStr = row.join(' ').toLowerCase();
+      // Cisco: are coloane Unit List Price + Disc(%)
+      if (rowStr.indexOf('unit list price') >= 0 || rowStr.indexOf('disc(%)') >= 0 || rowStr.indexOf('part number') >= 0) return 'cisco_quote';
+      // HPE/Dell: similar
+      if (rowStr.indexOf('list price') >= 0 && rowStr.indexOf('discount') >= 0 && rowStr.indexOf('net price') >= 0) return 'vendor_quote';
+      // Services: are coloane cu Sprint/Role
+      if (rowStr.indexOf('sprint') >= 0 || rowStr.indexOf('role') >= 0) return 'services';
+    }
+  }
+  return 'generic';
+}
+
+function parseCiscoQuote(sheets) {
+  var products = [];
+  var sheetNames = Object.keys(sheets);
+  sheetNames.forEach(function(sn) {
+    var rows = sheets[sn];
+    // Gaseste randul header
+    var headerRow = -1;
+    var colMap = {};
+    for (var i = 0; i < rows.length; i++) {
+      var rowStr = rows[i].join('	').toLowerCase();
+      if (rowStr.indexOf('part number') >= 0 && rowStr.indexOf('unit list price') >= 0) {
+        headerRow = i;
+        rows[i].forEach(function(cell, ci) {
+          var c = (cell||'').toString().toLowerCase().trim();
+          if (c.indexOf('line') >= 0 && c.indexOf('number') >= 0) colMap.line = ci;
+          if (c.indexOf('part number') >= 0) colMap.partNum = ci;
+          if (c.indexOf('description') >= 0) colMap.desc = ci;
+          if (c.indexOf('service duration') >= 0) colMap.duration = ci;
+          if (c.indexOf('unit list price') >= 0) colMap.rrp = ci;
+          if (c.indexOf('pricing term') >= 0) colMap.term = ci;
+          if (c.indexOf('qty') >= 0) colMap.qty = ci;
+          if (c === 'disc(%)' || c.indexOf('disc') >= 0) colMap.disc = ci;
+          if (c.indexOf('unit net price') >= 0) colMap.netUnit = ci;
+          if (c.indexOf('extended net price') >= 0) colMap.netTotal = ci;
+        });
+        break;
+      }
+    }
+    if (headerRow < 0) return;
+
+    // Extrage produsele
+    for (var r = headerRow + 1; r < rows.length; r++) {
+      var row = rows[r];
+      var lineNum = (row[colMap.line]||'').toString().trim();
+      var partNum = (row[colMap.partNum]||'').toString().trim();
+      var desc = (row[colMap.desc]||'').toString().trim();
+      // Sari peste randuri fara part number sau fara line number valid
+      if (!partNum || !lineNum || !lineNum.match(/^\d/)) continue;
+      // Sari peste randuri cu pret 0 si fara descriere relevanta
+      var rrp = parseFloat(row[colMap.rrp]) || 0;
+      var qty = parseFloat(row[colMap.qty]) || 1;
+      var disc = parseFloat(row[colMap.disc]) || 0;
+      var duration = (row[colMap.duration]||'').toString().trim();
+      var term = parseFloat(row[colMap.term]) || 0;
+      // Calculeaza pretul net
+      var netUnit = rrp * (1 - disc/100);
+      // Determina tipul: hardware sau software/licenta
+      var type = 'hw';
+      if (duration && duration !== '---' && parseFloat(duration) > 0) type = 'sw';
+      if (desc.toLowerCase().indexOf('license') >= 0 || desc.toLowerCase().indexOf('licens') >= 0 || desc.toLowerCase().indexOf('subscription') >= 0) type = 'sw';
+      if (desc.toLowerCase().indexOf('support') >= 0 || desc.toLowerCase().indexOf('sntc') >= 0 || desc.toLowerCase().indexOf('svc') >= 0) type = 'svc';
+      products.push({
+        name: desc,
+        code: partNum,
+        qty: qty,
+        unitPrice: Math.round(netUnit * 100) / 100,
+        rrp: rrp,
+        discount: disc,
+        duration: duration !== '---' ? duration : '',
+        pricingTerm: term || '',
+        type: type,
+        notes: disc > 0 ? 'RRP: $' + rrp.toFixed(2) + ' | Disc: ' + disc + '%' : ''
+      });
+    }
+  });
+  return products;
+}
+
 function readXLSX(file, doc) {
   file.arrayBuffer().then(function(ab) {
     var wb = XLSX.read(ab, { type: 'array' });
     var allSheets = {};
     wb.SheetNames.forEach(function(name) { allSheets[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' }); });
     doc.rawText = wb.SheetNames.map(function(n) { return 'Sheet: ' + n + '\n' + allSheets[n].map(function(r) { return r.join('\t'); }).join('\n'); }).join('\n\n');
-    doc.services = parseServices(allSheets);
-    doc.status = 'ready'; renderDocs(); updateStats();
-    toast('ok', 'Excel: ' + doc.services.roles.length + ' roluri detectate');
+    
+    var xlType = detectExcelType(allSheets);
+    doc.xlType = xlType;
+    
+    if (xlType === 'cisco_quote' || xlType === 'vendor_quote') {
+      doc.products = parseCiscoQuote(allSheets);
+      doc.isServices = false;
+      doc.supplier = 'Cisco';
+      doc.currency = 'USD';
+      doc.status = 'ready'; renderDocs(); updateStats();
+      toast('ok', 'Cisco quote: ' + doc.products.length + ' produse extrase (cu discount aplicat)');
+    } else if (xlType === 'services') {
+      doc.services = parseServices(allSheets);
+      doc.isServices = true;
+      doc.status = 'ready'; renderDocs(); updateStats();
+      toast('ok', 'Excel servicii: ' + doc.services.roles.length + ' roluri detectate');
+    } else {
+      // Generic - trimite la AI
+      var s = getSets();
+      if (s.apiKey && s.apiKey.indexOf('sk-ant-') === 0) {
+        aiExtract(doc, s.apiKey, s.model);
+      } else {
+        doc.products = basicParse(doc.rawText);
+        doc.status = 'ready'; renderDocs(); updateStats();
+        toast('ok', 'Excel: ' + doc.products.length + ' produse gasite');
+      }
+    }
   }).catch(function(err) { doc.status = 'error'; doc.error = err.message; renderDocs(); toast('err', 'Eroare Excel: ' + err.message); });
 }
 
