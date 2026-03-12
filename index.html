@@ -1518,20 +1518,7 @@ function offerAINeeds() {
   var btn = document.getElementById('btn-ai-needs');
   btn.disabled = true; btn.textContent = '⏳ Generează...';
   
-  var prompt = 'Ești un consultant IT senior. Generează o descriere profesională pentru slide-ul "Înțelegerea Cerințelor" dintr-o ofertă IT.
-'
-    + 'Client: ' + (client||'nespecificat') + '
-'
-    + 'Produse din ofertă: ' + (products||'nespecificate') + '
-'
-    + 'Scrie un paragraf scurt (3-4 propoziții) care descrie nevoia generală a clientului și 4-5 provocări specifice ca liste separate prin newline.
-'
-    + 'Format răspuns:
-PARAGRAF: <text>
-PROVOCĂRI:
-<provocare1>
-<provocare2>
-...';
+  var prompt = 'Esti consultant IT senior. Genereaza slide Intelegerea Cerintelor.\nClient: ' + (client||'nespecificat') + '\nProduse: ' + (products||'nespecificate') + '\nScrie paragraf 3-4 propozitii + 4-5 provocari pe linii separate.\nFormat:\nPARAGRAF: <text>\nPROVOCARI:\n<p1>\n<p2>\n...';
   
   fetch('/api/claude', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -1560,25 +1547,7 @@ function offerAISolution() {
   var btn = document.getElementById('btn-ai-sol');
   btn.disabled = true; btn.textContent = '⏳ Generează...';
   
-  var prompt = 'Ești un consultant IT senior la Brinel/iQanto. Generează conținut pentru slide-ul "Soluția Propusă" dintr-o ofertă IT.
-'
-    + 'Nevoia clientului: ' + (needs||'modernizare infrastructură IT') + '
-'
-    + 'Produse propuse: ' + (products||'soluții IT') + '
-'
-    + 'Generează:
-1. ABORDARE: 5-6 pași metodologici scurți (câte un punct pe linie)
-2. BENEFICII: 5-6 beneficii cheie pentru client (câte un punct pe linie)
-'
-    + 'Format exact:
-ABORDARE:
-<pas1>
-<pas2>
-...
-BENEFICII:
-<beneficiu1>
-<beneficiu2>
-...';
+  var prompt = 'Esti consultant IT senior Brinel/iQanto. Genereaza slide Solutia Propusa.\nNevoia: ' + (needs||'modernizare IT') + '\nProduse: ' + (products||'solutii IT') + '\nFormat:\nABORDARE:\n<pas1>\n<pas2>\nBENEFICII:\n<b1>\n<b2>';
   
   fetch('/api/claude', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -1586,7 +1555,6 @@ BENEFICII:
   }).then(function(r){return r.json();}).then(function(data) {
     var text = data.content[0].text;
     var abMatch = text.match(/ABORDARE:\s*([\s\S]+?)(?:
-BENEFICII:)/);
     var benMatch = text.match(/BENEFICII:\s*([\s\S]+)/);
     if (abMatch) document.getElementById('off-approach').value = abMatch[1].trim();
     if (benMatch) document.getElementById('off-benefits').value = benMatch[1].trim();
