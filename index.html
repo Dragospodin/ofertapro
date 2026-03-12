@@ -294,6 +294,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--n9);color:var(--tx);displ
             <button class="btn bs" onclick="plAddRow()">+ Adauga linie</button>
             <button class="btn bp" onclick="plExportXLSX()">&#8681; Export Excel</button>
             <button class="btn bg" onclick="plSendToOffer()">&#8594; Trimite in Oferta</button>
+            <button class="btn bdan bsm" onclick="plClearAll()">&#128465; Goleste</button>
           </div>
         </div>
       </div>
@@ -1039,10 +1040,13 @@ function plImportDocs() {
     if (doc.status !== 'ready') return;
     var prods = doc.products || [];
     if (!prods.length) return;
-    // Verifica daca documentul a fost deja importat (dupa nume)
-    var alreadyIn = PL.rows.some(function(r) { return r.sourceDoc === doc.id; });
-    if (alreadyIn) return;
     prods.forEach(function(p) {
+      // Evita duplicate - verifica dupa nume + pret
+      var key = (p.name||'').trim().toLowerCase() + '_' + (p.unitPrice||0);
+      var alreadyIn = PL.rows.some(function(r) {
+        return (r.name||'').trim().toLowerCase() + '_' + r.costUnit === key;
+      });
+      if (alreadyIn) return;
       var type = doc.isServices ? 'svc' : 'hw';
       var row = plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, type);
       row.sourceDoc = doc.id;
@@ -1102,6 +1106,7 @@ function plExportXLSX() {
 }
 
 function plSavePL() { try { localStorage.setItem('ofertapro_pl', JSON.stringify(PL.rows)); } catch(e) {} }
+function plClearAll() { if (!confirm('Stergi toate liniile din P&L?')) return; PL.rows = []; plSavePL(); plRenderRows(); toast('ok', 'P&L golit!'); }
 function plLoadPL() { try { var r = localStorage.getItem('ofertapro_pl'); if (r) PL.rows = JSON.parse(r).map(plSanitizeRow); } catch(e) {} plRenderRows(); }
 
 window.addEventListener('load', function() { try { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(e) {} loadSets(); loadDocs(); plLoadPL(); });
