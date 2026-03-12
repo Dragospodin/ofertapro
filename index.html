@@ -318,7 +318,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--n9);color:var(--tx);displ
             <thead>
               <tr>
                 <th style="width:36px">#</th>
-                <th style="min-width:240px">Denumire</th>
+                <th style="min-width:200px">Denumire</th>
+                <th style="width:110px">Furnizor</th>
                 <th style="width:90px">Tip</th>
                 <th style="width:65px">Cant.</th>
                 <th style="width:110px">Cost unit.</th>
@@ -927,15 +928,29 @@ function plDefaultMargin(type) {
 function plMakeRow(name, code, qty, costUnit, type) {
   type = type || 'hw';
   var margin = plDefaultMargin(type);
-  var costTotal = (qty||1) * (costUnit||0);
-  var sellPrice = costTotal * (1 + margin/100);
-  return { id: 'pl' + Date.now() + Math.random().toString(36).substr(2,4), name: name||'', code: code||'', qty: qty||1, costUnit: costUnit||0, type: type, margin: margin, sellPrice: sellPrice };
+  var q = parseFloat(qty) || 1;
+  var cu = parseFloat(costUnit) || 0;
+  var sellPrice = q * cu * (1 + margin/100);
+  return { id: 'pl' + Date.now() + Math.random().toString(36).substr(2,4), name: name||'', code: code||'', qty: q, costUnit: cu, type: type, margin: margin, sellPrice: sellPrice };
+}
+
+function plSanitizeRow(row) {
+  row.qty = parseFloat(row.qty) || 1;
+  row.costUnit = parseFloat(row.costUnit) || 0;
+  row.margin = parseFloat(row.margin) || plDefaultMargin(row.type||'hw');
+  row.sellPrice = parseFloat(row.sellPrice) || row.costUnit * row.qty * (1 + row.margin/100);
+  row.type = row.type || 'hw';
+  row.name = row.name || '';
+  row.code = row.code || '';
+  return row;
 }
 
 function plRenderRows() {
   var tbody = document.getElementById('pl-tbody');
   var empty = document.getElementById('pl-empty');
   if (!tbody) return;
+  // Sanitize all rows first
+  PL.rows = PL.rows.map(plSanitizeRow);
   if (!PL.rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; plUpdateTotals(); return; }
   empty.style.display = 'none';
   var html = '';
@@ -949,6 +964,7 @@ function plRenderRows() {
     html += '<tr>';
     html += '<td style="color:var(--t3);font-size:11px">' + (idx+1) + '</td>';
     html += '<td><input class="pl-in" value="' + esc(row.name) + '" data-rid="' + rid + '" data-field="name" onchange="plField(this)"></td>';
+    html += '<td style="font-size:11px;color:var(--t3);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(row.supplier||'') + '">' + esc((row.supplier||'').substring(0,20)) + '</td>';
     html += '<td><select class="pl-sel" data-rid="' + rid + '" data-field="type" onchange="plField(this)">' + typeOpts + '</select></td>';
     html += '<td><input class="pl-in pl-num" type="number" min="1" value="' + row.qty + '" data-rid="' + rid + '" data-field="qty" onchange="plField(this)"></td>';
     html += '<td><input class="pl-in pl-num" type="number" min="0" step="0.01" value="' + row.costUnit + '" data-rid="' + rid + '" data-field="costUnit" onchange="plField(this)" style="color:var(--t2)"></td>';
@@ -1015,38 +1031,29 @@ function plAddRow() {
 }
 
 function plImportDocs() {
-  // Asigura ca documentele sunt incarcate din localStorage
   if (!APP.docs.length) { loadDocs(); }
-  
   var imported = 0;
-  
-  // Incearca mai intai din coada ofertapro_pl_q (Trimite in P&L)
-  var q = [];
-  try { q = JSON.parse(localStorage.getItem('ofertapro_pl_q') || '[]'); } catch(e) {}
-  if (q.length) {
-    q.forEach(function(doc) {
-      (doc.products || []).forEach(function(p) {
-        PL.rows.push(plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, 'hw'));
-        imported++;
-      });
+
+  // Importa din TOATE documentele ready - agregare multi-furnizor
+  APP.docs.forEach(function(doc) {
+    if (doc.status !== 'ready') return;
+    var prods = doc.products || [];
+    if (!prods.length) return;
+    // Verifica daca documentul a fost deja importat (dupa nume)
+    var alreadyIn = PL.rows.some(function(r) { return r.sourceDoc === doc.id; });
+    if (alreadyIn) return;
+    prods.forEach(function(p) {
+      var type = doc.isServices ? 'svc' : 'hw';
+      var row = plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, type);
+      row.sourceDoc = doc.id;
+      row.supplier = doc.supplier || doc.name || '';
+      PL.rows.push(row);
+      imported++;
     });
-    localStorage.removeItem('ofertapro_pl_q');
-  }
-  
-  // Daca nu e nimic in coada, importa direct din APP.docs
-  if (!imported) {
-    APP.docs.forEach(function(doc) {
-      if (doc.status === 'ready' && doc.products && doc.products.length) {
-        doc.products.forEach(function(p) {
-          var type = doc.isServices ? 'svc' : 'hw';
-          PL.rows.push(plMakeRow(p.name, p.code, p.qty||1, p.unitPrice||0, type));
-          imported++;
-        });
-      }
-    });
-  }
-  
-  if (imported) { plSavePL(); plRenderRows(); toast('ok', imported + ' linii importate!'); }
+  });
+
+  if (imported) { plSavePL(); plRenderRows(); toast('ok', imported + ' linii importate din ' + APP.docs.filter(function(d){return d.status==='ready';}).length + ' documente!'); }
+  else if (APP.docs.length) toast('warn', 'Toate documentele au fost deja importate.')
   else toast('warn', 'Niciun document disponibil. Incarca un PDF in tab Documente.');
 }
 
@@ -1095,7 +1102,7 @@ function plExportXLSX() {
 }
 
 function plSavePL() { try { localStorage.setItem('ofertapro_pl', JSON.stringify(PL.rows)); } catch(e) {} }
-function plLoadPL() { try { var r = localStorage.getItem('ofertapro_pl'); if (r) PL.rows = JSON.parse(r); } catch(e) {} plRenderRows(); }
+function plLoadPL() { try { var r = localStorage.getItem('ofertapro_pl'); if (r) PL.rows = JSON.parse(r).map(plSanitizeRow); } catch(e) {} plRenderRows(); }
 
 window.addEventListener('load', function() { try { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(e) {} loadSets(); loadDocs(); plLoadPL(); });
 </script>
