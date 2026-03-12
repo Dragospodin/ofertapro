@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--n9:#080d1a;--n8:#0d1526;--n7:#111d33;--n6:#172040;--n5:#1e2d55;--n4:#2a3f72;--b:rgba(255,255,255,0.07);--bh:rgba(255,255,255,0.14);--or:#e8651a;--orl:#f07d35;--od:rgba(232,101,26,0.15);--og:rgba(232,101,26,0.3);--tx:#eef0f6;--t2:#8892b0;--t3:#4a5578;--gr:#2dd4a0;--gd:rgba(45,212,160,0.12);--rd:#f87171;--yw:#fbbf24;--yd:rgba(251,191,36,0.12);--bl:#60a5fa;--bd:rgba(96,165,250,0.12);--r:10px;--rl:16px;--sw:220px;--hh:60px}
@@ -1597,6 +1597,7 @@ function offerBuildSummary() {
 }
 
 function offerMakePptx() {
+  if (typeof pptxgen === "undefined") { throw new Error("Biblioteca PPTX nu s-a incarcat. Incearca refresh (Ctrl+Shift+R)."); }
   var pptx = new pptxgen();
   pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5
   pptx.defineLayout({ name:'WIDE', width:13.33, height:7.5 });
