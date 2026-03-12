@@ -1715,8 +1715,7 @@ function offerGenerate() {
 
       // 2. Slide: Cerinte
       var needs = document.getElementById('off-needs').value;
-      var challenges = (document.getElementById('off-challenges').value||'').split('
-').filter(Boolean);
+      var challenges = (document.getElementById('off-challenges').value||'').split('\n').filter(Boolean);
       if (needs || challenges.length) {
         var items = [{text: needs, size:14, space:12}];
         challenges.forEach(function(c){ items.push({text:'• '+c, size:13, space:6}); });
@@ -1724,12 +1723,8 @@ function offerGenerate() {
       }
 
       // 3. Slide: Solutie
-      var approach = (document.getElementById('off-approach').value||'').split('
-').filter(Boolean);
-      var benefits = (document.getElementById('off-benefits').value||'').split('
-').filter(Boolean);
-      if (approach.length || benefits.length) {
-        builder.addTwoColSlide('Soluția Propusă', 'Abordare & Metodologie', approach.slice(0,7), 'Beneficii Cheie', benefits.slice(0,7));
+      var approach = (document.getElementById('off-approach').value||'').split('\n').filter(Boolean);
+      var benefits = (document.getElementById('off-benefits').value||'').split('\n').filter(Boolean);
       }
 
       // 4. Slide: Timeline
@@ -1789,13 +1784,10 @@ function offerGenerate() {
       if (payment)  termItems.push({text:'Termeni de plată: '+payment, bold:true, size:14, space:10});
       if (delivery) termItems.push({text:'Livrare: '+delivery, size:13, space:6});
       if (warranty) termItems.push({text:'Garanție: '+warranty, size:13, space:6});
-      var assumptions = (document.getElementById('off-assumptions').value||'').split('
-').filter(Boolean);
+      var assumptions = (document.getElementById('off-assumptions').value||'').split('\n').filter(Boolean);
       if (assumptions.length) {
-        termItems.push({text:'', size:5, space:3});
-        termItems.push({text:'Precizări și Assumptions:', bold:true, size:13, space:8});
+        termItems.push({text:'Assumptions:', bold:true, size:13, space:8});
         assumptions.forEach(function(a){ termItems.push({text:'• '+a, size:12, space:5}); });
-      }
       builder.addSlide('Termeni Comerciali & Assumptions', termItems);
 
       // Export
