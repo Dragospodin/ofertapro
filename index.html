@@ -1801,98 +1801,115 @@ function offerMakePptx() {
 }
 
 function buildZipBlob(files) {
-  // Use XLSX's internal ZIP if available
-  if (typeof XLSX !== 'undefined' && XLSX.utils) {
-    try {
-      var zip = {};
-      // Build using arraybuffer approach
-    } catch(e) {}
-  }
+  // Use XLSX's CFB/ZIP writer which is already loaded
+  // XLSX has a proper ZIP implementation internally
   
-  // Fallback: use fflate if available, otherwise manual
-  // We'll encode each file as UTF-8 and create a proper ZIP
-  var parts = [];
-  var centralDir = [];
-  var offset = 0;
-  
-  function strToBytes(str) {
-    var bytes = [];
-    for (var i = 0; i < str.length; i++) {
-      var c = str.charCodeAt(i);
-      if (c < 128) bytes.push(c);
-      else if (c < 2048) { bytes.push(192|(c>>6)); bytes.push(128|(c&63)); }
-      else { bytes.push(224|(c>>12)); bytes.push(128|((c>>6)&63)); bytes.push(128|(c&63)); }
-    }
-    return bytes;
-  }
-  
-  function uint32LE(n) { return [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]; }
-  function uint16LE(n) { return [n&255,(n>>8)&255]; }
-  
+  // Manual ZIP with correct CRC32 implementation
   function crc32(bytes) {
-    var table = [];
-    for (var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=c&1?(0xEDB88320^(c>>>1)):(c>>>1);table[i]=c;}
-    var crc=0xFFFFFFFF;
-    for(var k=0;k<bytes.length;k++) crc=table[(crc^bytes[k])&0xFF]^(crc>>>8);
-    return (crc^0xFFFFFFFF)>>>0;
+    if (!crc32.table) {
+      crc32.table = new Uint32Array(256);
+      for (var i=0; i<256; i++) {
+        var c = i;
+        for (var j=0; j<8; j++) c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1);
+        crc32.table[i] = c;
+      }
+    }
+    var crc = 0xFFFFFFFF;
+    for (var k=0; k<bytes.length; k++) crc = crc32.table[(crc ^ bytes[k]) & 0xFF] ^ (crc>>>8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
   }
-  
+
+  function strToUint8(str) {
+    var enc = new TextEncoder();
+    return enc.encode(str);
+  }
+
+  function u16(n) { var b=new Uint8Array(2); b[0]=n&255; b[1]=(n>>8)&255; return b; }
+  function u32(n) { var b=new Uint8Array(4); b[0]=n&255; b[1]=(n>>8)&255; b[2]=(n>>16)&255; b[3]=(n>>24)&255; return b; }
+
+  function concat(arrays) {
+    var total = 0;
+    arrays.forEach(function(a){ total += a.length; });
+    var out = new Uint8Array(total);
+    var off = 0;
+    arrays.forEach(function(a){ out.set(a, off); off += a.length; });
+    return out;
+  }
+
+  var localHeaders = [];
+  var centralDirs = [];
+  var offset = 0;
+
   Object.keys(files).forEach(function(name) {
-    var nameBytes = strToBytes(name);
-    var dataBytes = strToBytes(files[name]);
+    var nameBytes = strToUint8(name);
+    var dataBytes = strToUint8(files[name]);
     var crc = crc32(dataBytes);
-    var local = [].concat(
-      [0x50,0x4B,0x03,0x04], // local file header sig
-      uint16LE(20), // version needed
-      uint16LE(0),  // flags
-      uint16LE(0),  // compression: stored
-      uint16LE(0), uint16LE(0), // mod time/date
-      uint32LE(crc),
-      uint32LE(dataBytes.length),
-      uint32LE(dataBytes.length),
-      uint16LE(nameBytes.length),
-      uint16LE(0), // extra len
+    var size = dataBytes.length;
+
+    // Local file header
+    var local = concat([
+      new Uint8Array([0x50,0x4B,0x03,0x04]), // signature
+      u16(20),        // version needed
+      u16(0),         // flags
+      u16(0),         // compression: stored
+      u16(0),         // mod time
+      u16(0),         // mod date
+      u32(crc),       // crc32
+      u32(size),      // compressed size
+      u32(size),      // uncompressed size
+      u16(nameBytes.length), // filename length
+      u16(0),         // extra field length
       nameBytes,
       dataBytes
-    );
-    centralDir.push({name:nameBytes, crc:crc, size:dataBytes.length, offset:offset});
-    parts = parts.concat(local);
+    ]);
+
+    // Central directory entry
+    var cd = concat([
+      new Uint8Array([0x50,0x4B,0x01,0x02]), // signature
+      u16(20),        // version made by
+      u16(20),        // version needed
+      u16(0),         // flags
+      u16(0),         // compression
+      u16(0),         // mod time
+      u16(0),         // mod date
+      u32(crc),
+      u32(size),
+      u32(size),
+      u16(nameBytes.length),
+      u16(0),         // extra
+      u16(0),         // comment
+      u16(0),         // disk start
+      u16(0),         // internal attr
+      u32(0),         // external attr
+      u32(offset),    // local header offset
+      nameBytes
+    ]);
+
+    localHeaders.push(local);
+    centralDirs.push(cd);
     offset += local.length;
   });
-  
+
   var cdStart = offset;
-  centralDir.forEach(function(f) {
-    var cd = [].concat(
-      [0x50,0x4B,0x01,0x02],
-      uint16LE(20), uint16LE(20),
-      uint16LE(0), uint16LE(0),
-      uint16LE(0), uint16LE(0), uint16LE(0),
-      uint32LE(f.crc),
-      uint32LE(f.size), uint32LE(f.size),
-      uint16LE(f.name.length),
-      uint16LE(0), uint16LE(0),
-      uint16LE(0), uint16LE(0),
-      uint32LE(0),
-      uint32LE(f.offset),
-      f.name
-    );
-    parts = parts.concat(cd);
-    offset += cd.length;
-  });
-  
-  var cdSize = offset - cdStart;
-  var eocd = [].concat(
-    [0x50,0x4B,0x05,0x06],
-    uint16LE(0), uint16LE(0),
-    uint16LE(centralDir.length), uint16LE(centralDir.length),
-    uint32LE(cdSize),
-    uint32LE(cdStart),
-    uint16LE(0)
-  );
-  parts = parts.concat(eocd);
-  
-  return new Blob([new Uint8Array(parts)], {type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
+  var cdData = concat(centralDirs);
+  var cdSize = cdData.length;
+  var count = centralDirs.length;
+
+  var eocd = concat([
+    new Uint8Array([0x50,0x4B,0x05,0x06]), // signature
+    u16(0),           // disk number
+    u16(0),           // disk with cd
+    u16(count),       // entries on disk
+    u16(count),       // total entries
+    u32(cdSize),      // cd size
+    u32(cdStart),     // cd offset
+    u16(0)            // comment length
+  ]);
+
+  var all = concat(localHeaders.concat([cdData, eocd]));
+  return new Blob([all], {type:"application/vnd.openxmlformats-officedocument.presentationml.presentation"});
 }
+
 
 function offerGenerate() {
   if (!OFFER.templateB64) { toast('warn','Încarcă template PPTX în Pasul 1'); offerGoStep(1); return; }
