@@ -1525,10 +1525,8 @@ function offerAINeeds() {
     body: JSON.stringify({model:s.model||'claude-sonnet-4-20250514', max_tokens:600, messages:[{role:'user',content:prompt}]})
   }).then(function(r){return r.json();}).then(function(data) {
     var text = data.content[0].text;
-    var paragMatch = text.match(/PARAGRAF:\s*(.+?)(?:
-PROVOCĂRI:|
-PROVOCĂRI:)/s);
-    var provMatch = text.match(/PROVOC[ĂA]RI:\s*([\s\S]+)/);
+    var paragMatch = text.match(/PARAGRAF:\s*([\s\S]+?)(?=PROVOCARI:|PROVOCĂRI:|$)/i);
+    var provMatch = text.match(/PROVOCARI:|PROVOCĂRI:[\s\S]*(\n[\s\S]+)/i);
     if (paragMatch) document.getElementById('off-needs').value = paragMatch[1].trim();
     if (provMatch) document.getElementById('off-challenges').value = provMatch[1].trim();
     btn.disabled = false; btn.textContent = '✨ Ajută-mă cu AI';
@@ -1554,8 +1552,7 @@ function offerAISolution() {
     body: JSON.stringify({model:s.model||'claude-sonnet-4-20250514', max_tokens:600, messages:[{role:'user',content:prompt}]})
   }).then(function(r){return r.json();}).then(function(data) {
     var text = data.content[0].text;
-    var abMatch = text.match(/ABORDARE:\s*([\s\S]+?)(?:
-    var benMatch = text.match(/BENEFICII:\s*([\s\S]+)/);
+    var abMatch = text.match(/ABORDARE:[\s\S]+?(?=BENEFICII:|$)/i);
     if (abMatch) document.getElementById('off-approach').value = abMatch[1].trim();
     if (benMatch) document.getElementById('off-benefits').value = benMatch[1].trim();
     btn.disabled = false; btn.textContent = '✨ Generează cu AI';
