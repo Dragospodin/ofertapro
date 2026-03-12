@@ -111,6 +111,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--n9);color:var(--tx);displ
 .cst{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px}
 .csd{font-size:13px;color:var(--t2);max-width:400px;margin:0 auto;line-height:1.7}
 .csm{display:inline-block;margin-top:16px;background:var(--od);border:1px solid rgba(232,101,26,.3);color:var(--orl);font-size:11px;font-weight:700;padding:5px 14px;border-radius:99px}
+.badge-slide{background:var(--nb2);color:var(--t2);font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid var(--brd)}
+.offer-step.active{background:var(--nb2)!important;border-bottom:2px solid var(--orange)}
+.offer-step:hover{background:var(--nb2)!important}
 .wb{background:linear-gradient(135deg,var(--n7) 0%,var(--n6) 50%,var(--n5) 100%);border:1px solid var(--b);border-radius:var(--rl);padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden}
 .wb::after{content:'';position:absolute;right:-20px;top:-20px;width:200px;height:200px;border-radius:50%;background:var(--od);pointer-events:none}
 .wt{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px}
@@ -343,8 +346,160 @@ body{font-family:'DM Sans',sans-serif;background:var(--n9);color:var(--tx);displ
     </div>
 
 <div class="view" id="view-offer">
-      <div class="ph"><div class="pey">Generator</div><div class="ptitle">Generator Oferta</div></div>
-      <div class="csb"><div class="csi">&#128202;</div><div class="cst">Disponibil in Modul 4</div><div class="csd">AI genereaza deck profesional navy.</div><span class="csm">Modul 4</span></div>
+      <div class="ph">
+        <div class="pey">Generator</div>
+        <div class="ptitle">Generator Ofertă</div>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn bs" onclick="offerLoadPL()">&#8595; Încarcă din P&L</button>
+          <button class="btn bp" id="btn-gen-pptx" onclick="offerGenerate()" disabled>&#9889; Generează PPTX</button>
+        </div>
+      </div>
+
+      <!-- Step indicator -->
+      <div style="display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden">
+        <div class="offer-step active" id="ostep-1" onclick="offerGoStep(1)" style="flex:1;padding:10px 16px;background:var(--nb);cursor:pointer;border-right:1px solid var(--brd);transition:.2s">
+          <div style="font-size:11px;color:var(--t3)">Pasul 1</div>
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">&#128229; Template & Slide-uri</div>
+        </div>
+        <div class="offer-step" id="ostep-2" onclick="offerGoStep(2)" style="flex:1;padding:10px 16px;background:var(--nb);cursor:pointer;border-right:1px solid var(--brd);transition:.2s">
+          <div style="font-size:11px;color:var(--t3)">Pasul 2</div>
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">&#128221; Conținut Ofertă</div>
+        </div>
+        <div class="offer-step" id="ostep-3" onclick="offerGoStep(3)" style="flex:1;padding:10px 16px;background:var(--nb);cursor:pointer;transition:.2s">
+          <div style="font-size:11px;color:var(--t3)">Pasul 3</div>
+          <div style="font-size:13px;font-weight:600;color:var(--t1)">&#9889; Generare & Export</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Template -->
+      <div id="offer-step-1">
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:12px">&#128229; Template PPTX</div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <label class="btn bs" style="cursor:pointer">
+              &#128193; Încarcă Template
+              <input type="file" accept=".pptx" id="offer-template-input" onchange="offerLoadTemplate(this)" style="display:none">
+            </label>
+            <div id="offer-template-name" style="color:var(--t3);font-size:13px">Niciun template încărcat</div>
+          </div>
+          <div id="offer-template-info" style="display:none;margin-top:12px;padding:10px;background:var(--nb2);border-radius:8px;font-size:12px;color:var(--t2)"></div>
+        </div>
+
+        <div class="card" id="offer-slides-card" style="display:none">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">&#127910; Selectează Slide-urile din Template</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:12px">Bifează slide-urile fixe pe care vrei să le incluzi (cover, despre noi, parteneri, contact, etc.)</div>
+          <div id="offer-slides-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+          <div style="margin-top:14px;display:flex;gap:10px">
+            <button class="btn bs" onclick="offerSelectAllSlides(true)">Selectează tot</button>
+            <button class="btn bs" onclick="offerSelectAllSlides(false)">Deselectează tot</button>
+            <button class="btn bp" onclick="offerGoStep(2)" style="margin-left:auto">Continuă &#8594;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Content -->
+      <div id="offer-step-2" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card">
+            <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:12px">&#127970; Date Client</div>
+            <div class="fi"><label class="fl">Nume Client *</label><input class="fi-in" id="off-client" placeholder="ex: Retele Electrice SA"></div>
+            <div class="fi"><label class="fl">Persoana de Contact</label><input class="fi-in" id="off-contact" placeholder="ex: Ion Popescu - IT Manager"></div>
+            <div class="fi"><label class="fl">Număr Ofertă</label><input class="fi-in" id="off-nr" placeholder="ex: OF-2026-047"></div>
+            <div class="fi"><label class="fl">Data Ofertă</label><input class="fi-in" type="date" id="off-date"></div>
+          </div>
+          <div class="card">
+            <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:12px">&#9881; Termeni Comerciali</div>
+            <div class="fi"><label class="fl">Valabilitate Ofertă</label><input class="fi-in" id="off-validity" value="30 de zile calendaristice" placeholder="ex: 30 zile"></div>
+            <div class="fi"><label class="fl">Termeni Plată</label><input class="fi-in" id="off-payment" placeholder="ex: 30 zile de la livrare, factura"></div>
+            <div class="fi"><label class="fl">Termeni Livrare</label><input class="fi-in" id="off-delivery" placeholder="ex: 4-6 săptămâni de la confirmarea comenzii"></div>
+            <div class="fi"><label class="fl">Garanție</label><input class="fi-in" id="off-warranty" placeholder="ex: 12 luni conform politică vendor"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px">&#128269; Înțelegerea Cerințelor</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:8px">Descrie pe scurt nevoia clientului — AI-ul va folosi asta pentru slide-ul de context</div>
+          <textarea class="fi-in" id="off-needs" rows="3" placeholder="ex: Clientul dorește modernizarea infrastructurii de rețea industrială pentru 75 de puncte de lucru distribuite, cu focus pe securitate și management centralizat..." style="width:100%;resize:vertical"></textarea>
+          <div style="margin-top:8px">
+            <div style="font-size:12px;color:var(--t3);margin-bottom:6px">Provocări / Cerințe specifice (câte una pe linie)</div>
+            <textarea class="fi-in" id="off-challenges" rows="3" placeholder="Conectivitate robustă în medii industriale&#10;Securitate endpoint avansată&#10;Management centralizat și vizibilitate IoT" style="width:100%;resize:vertical"></textarea>
+          </div>
+          <div style="margin-top:8px;text-align:right">
+            <button class="btn bs" onclick="offerAINeeds()" id="btn-ai-needs">&#10024; Ajută-mă cu AI</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px">&#128161; Soluția Propusă</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <div style="font-size:12px;color:var(--t3);margin-bottom:6px">Abordare & Metodologie (câte un punct pe linie)</div>
+              <textarea class="fi-in" id="off-approach" rows="5" placeholder="Audit infrastructură existentă&#10;Design soluție end-to-end&#10;Implementare în 3 faze&#10;Training echipă client&#10;Suport post-implementare" style="width:100%;resize:vertical"></textarea>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--t3);margin-bottom:6px">Beneficii Cheie (câte un punct pe linie)</div>
+              <textarea class="fi-in" id="off-benefits" rows="5" placeholder="Reducere downtime cu 40%&#10;Vizibilitate completă în rețea&#10;Conformitate securitate IT/OT&#10;Scalabilitate pentru creștere viitoare&#10;ROI estimat în 18 luni" style="width:100%;resize:vertical"></textarea>
+            </div>
+          </div>
+          <div style="margin-top:8px;text-align:right">
+            <button class="btn bs" onclick="offerAISolution()" id="btn-ai-sol">&#10024; Generează cu AI</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px">&#128197; Plan Implementare <span style="font-size:11px;color:var(--t3);font-weight:400">(opțional)</span></div>
+          <textarea class="fi-in" id="off-timeline" rows="4" placeholder="Faza 1 (Săpt 1-2): Audit și design detaliat&#10;Faza 2 (Săpt 3-6): Livrare echipamente și configurare&#10;Faza 3 (Săpt 7-8): Testing, training și go-live" style="width:100%;resize:vertical"></textarea>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px">&#128101; Echipa Dedicată <span style="font-size:11px;color:var(--t3);font-weight:400">(opțional)</span></div>
+          <textarea class="fi-in" id="off-team" rows="3" placeholder="Solution Architect - 8 zile&#10;Network Engineer - 15 zile&#10;Project Manager - 10 zile" style="width:100%;resize:vertical"></textarea>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:8px">&#128203; Assumptions & Precizări</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:6px">Câte o precizare pe linie — vor apărea în slide-ul de termeni</div>
+          <textarea class="fi-in" id="off-assumptions" rows="4" placeholder="Prețurile nu includ TVA&#10;Instalarea fizică a echipamentelor nu este inclusă în ofertă&#10;Prețurile cloud sunt estimative, facturarea se face pe consum real&#10;Oferta exclude serviciile de proiectare electrică" style="width:100%;resize:vertical"></textarea>
+        </div>
+
+        <div style="display:flex;justify-content:space-between">
+          <button class="btn bs" onclick="offerGoStep(1)">&#8592; Înapoi</button>
+          <button class="btn bp" onclick="offerGoStep(3)">Continuă &#8594;</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Generate -->
+      <div id="offer-step-3" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:12px">&#128203; Sumar Ofertă</div>
+          <div id="offer-summary" style="font-size:13px;color:var(--t2);line-height:1.8"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:12px">&#127910; Slide-uri ce vor fi generate de AI</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px" id="offer-ai-slides-preview">
+            <span class="badge-slide">&#128269; Înțelegerea Cerințelor</span>
+            <span class="badge-slide">&#128161; Soluția Propusă</span>
+            <span class="badge-slide">&#128197; Plan Implementare</span>
+            <span class="badge-slide">&#128101; Echipa Dedicată</span>
+            <span class="badge-slide">&#128181; Propunere Comercială</span>
+            <span class="badge-slide">&#9878; Termeni & Assumptions</span>
+          </div>
+        </div>
+
+        <div id="offer-gen-status" style="display:none;padding:20px;background:var(--nb);border-radius:12px;text-align:center;margin-bottom:16px">
+          <div style="font-size:32px;margin-bottom:8px" id="offer-gen-icon">&#9889;</div>
+          <div style="font-size:15px;font-weight:600;color:var(--t1)" id="offer-gen-msg">Se generează PPTX...</div>
+          <div style="font-size:12px;color:var(--t3);margin-top:4px" id="offer-gen-sub">Procesare template și construire slide-uri</div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <button class="btn bs" onclick="offerGoStep(2)">&#8592; Înapoi</button>
+          <button class="btn bp" id="btn-final-gen" onclick="offerGenerate()" style="padding:12px 32px;font-size:15px">
+            &#9889; Generează PPTX
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="view" id="view-compare">
@@ -1221,6 +1376,335 @@ function plClearAll() { if (!confirm('Stergi toate liniile din P&L?')) return; P
 function plLoadPL() { try { var r = localStorage.getItem('ofertapro_pl'); if (r) PL.rows = JSON.parse(r).map(plSanitizeRow); } catch(e) {} plRenderRows(); }
 
 window.addEventListener('load', function() { try { if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch(e) {} loadSets(); loadDocs(); plLoadPL(); });
+
+// ============================================================
+// MODUL 4 — GENERATOR OFERTĂ
+// ============================================================
+var OFFER = {
+  templateB64: null,
+  templateName: null,
+  slideCount: 0,
+  selectedSlides: [],
+  slideTitles: []
+};
+
+function offerGoStep(n) {
+  [1,2,3].forEach(function(i) {
+    document.getElementById('offer-step-' + i).style.display = i === n ? '' : 'none';
+    var el = document.getElementById('ostep-' + i);
+    if (el) { el.classList.toggle('active', i === n); }
+  });
+  if (n === 3) offerBuildSummary();
+}
+
+function offerLoadTemplate(input) {
+  var file = input.files[0];
+  if (!file) return;
+  OFFER.templateName = file.name;
+  document.getElementById('offer-template-name').textContent = file.name;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    OFFER.templateB64 = e.target.result.split(',')[1];
+    // Parse slide titles using SheetJS workaround — send to AI for titles
+    offerExtractSlideTitles(file);
+  };
+  reader.readAsDataURL(file);
+}
+
+function offerExtractSlideTitles(file) {
+  // Read PPTX as ZIP to extract slide titles
+  file.arrayBuffer().then(function(ab) {
+    try {
+      var zip = XLSX.read(new Uint8Array(ab), {type:'array'});
+      var titles = [];
+      var slideFiles = Object.keys(zip.Files || zip.files || {})
+        .filter(function(f) { return f.match(/ppt\/slides\/slide\d+\.xml$/) && !f.includes('_rels'); })
+        .sort(function(a,b) {
+          var na = parseInt(a.match(/\d+/)[0]);
+          var nb = parseInt(b.match(/\d+/)[0]);
+          return na - nb;
+        });
+      
+      slideFiles.forEach(function(sf, idx) {
+        var xmlStr = '';
+        try {
+          var entry = (zip.Files || zip.files)[sf];
+          if (entry && entry.content) xmlStr = entry.content;
+          else if (entry && entry.asText) xmlStr = entry.asText();
+          else {
+            // Use XLSX zip utils
+            xmlStr = zip.Sheets ? '' : XLSX.utils.decode_cell ? '' : '';
+          }
+        } catch(e) {}
+        // Extract text from XML
+        var texts = [];
+        var matches = xmlStr.match(/<a:t[^>]*>([^<]+)<\/a:t>/g) || [];
+        matches.forEach(function(m) {
+          var t = m.replace(/<[^>]+>/g,'').trim();
+          if (t && t.length > 2 && t.length < 80) texts.push(t);
+        });
+        titles.push(texts.slice(0,2).join(' — ') || ('Slide ' + (idx+1)));
+      });
+      
+      OFFER.slideCount = slideFiles.length;
+      OFFER.slideTitles = titles;
+      offerRenderSlideGrid(titles);
+    } catch(e) {
+      // Fallback: show generic slide tiles
+      offerRenderSlideGrid(null);
+    }
+  });
+}
+
+function offerRenderSlideGrid(titles) {
+  var count = titles ? titles.length : 16;
+  OFFER.slideCount = count;
+  var grid = document.getElementById('offer-slides-grid');
+  var info = document.getElementById('offer-template-info');
+  info.style.display = '';
+  info.textContent = count + ' slide-uri găsite în template';
+  grid.innerHTML = '';
+  // Default: select slides 1,2 and last one (cover, about, contact)
+  OFFER.selectedSlides = [0, 1, count-1];
+  for (var i = 0; i < count; i++) {
+    var title = titles ? titles[i] : ('Slide ' + (i+1));
+    var checked = OFFER.selectedSlides.indexOf(i) >= 0;
+    var div = document.createElement('div');
+    div.style.cssText = 'background:var(--nb2);border:2px solid '+(checked?'var(--orange)':'var(--brd)')+';border-radius:10px;padding:10px 12px;cursor:pointer;transition:.2s';
+    div.dataset.idx = i;
+    div.innerHTML = '<div style="display:flex;align-items:center;gap:8px">'
+      + '<input type="checkbox" '+(checked?'checked':'')+' style="accent-color:var(--orange);width:16px;height:16px">'
+      + '<div><div style="font-size:11px;color:var(--t3)">Slide '+(i+1)+'</div>'
+      + '<div style="font-size:12px;color:var(--t1);font-weight:500;margin-top:2px">'
+      + title.substring(0,50) + '</div></div></div>';
+    div.onclick = function(e) {
+      var idx = parseInt(this.dataset.idx);
+      var cb = this.querySelector('input');
+      cb.checked = !cb.checked;
+      this.style.borderColor = cb.checked ? 'var(--orange)' : 'var(--brd)';
+      if (cb.checked) { if (OFFER.selectedSlides.indexOf(idx)<0) OFFER.selectedSlides.push(idx); }
+      else { OFFER.selectedSlides = OFFER.selectedSlides.filter(function(x){return x!==idx;}); }
+    };
+    grid.appendChild(div);
+  }
+  document.getElementById('offer-slides-card').style.display = '';
+}
+
+function offerSelectAllSlides(val) {
+  OFFER.selectedSlides = [];
+  document.querySelectorAll('#offer-slides-grid > div').forEach(function(div) {
+    var cb = div.querySelector('input');
+    cb.checked = val;
+    div.style.borderColor = val ? 'var(--orange)' : 'var(--brd)';
+    if (val) OFFER.selectedSlides.push(parseInt(div.dataset.idx));
+  });
+}
+
+function offerLoadPL() {
+  // Load currency and rows from PL
+  var currency = PL.currency || 'EUR';
+  document.getElementById('off-validity').value = getSets().offerValidity || '30 de zile calendaristice';
+  toast('ok', 'Date P&L încărcate: ' + PL.rows.length + ' linii, ' + currency);
+}
+
+function offerAINeeds() {
+  var s = getSets();
+  if (!s.apiKey || s.apiKey.indexOf('sk-ant-') !== 0) { toast('warn','Configurează API key în Setări'); return; }
+  var client = document.getElementById('off-client').value;
+  var products = PL.rows.map(function(r){return r.name;}).join(', ');
+  if (!client && !products) { toast('warn','Completează numele clientului sau încarcă P&L'); return; }
+  
+  var btn = document.getElementById('btn-ai-needs');
+  btn.disabled = true; btn.textContent = '⏳ Generează...';
+  
+  var prompt = 'Ești un consultant IT senior. Generează o descriere profesională pentru slide-ul "Înțelegerea Cerințelor" dintr-o ofertă IT.
+'
+    + 'Client: ' + (client||'nespecificat') + '
+'
+    + 'Produse din ofertă: ' + (products||'nespecificate') + '
+'
+    + 'Scrie un paragraf scurt (3-4 propoziții) care descrie nevoia generală a clientului și 4-5 provocări specifice ca liste separate prin newline.
+'
+    + 'Format răspuns:
+PARAGRAF: <text>
+PROVOCĂRI:
+<provocare1>
+<provocare2>
+...';
+  
+  fetch('/api/claude', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({model:s.model||'claude-sonnet-4-20250514', max_tokens:600, messages:[{role:'user',content:prompt}]})
+  }).then(function(r){return r.json();}).then(function(data) {
+    var text = data.content[0].text;
+    var paragMatch = text.match(/PARAGRAF:\s*(.+?)(?:
+PROVOCĂRI:|
+PROVOCĂRI:)/s);
+    var provMatch = text.match(/PROVOC[ĂA]RI:\s*([\s\S]+)/);
+    if (paragMatch) document.getElementById('off-needs').value = paragMatch[1].trim();
+    if (provMatch) document.getElementById('off-challenges').value = provMatch[1].trim();
+    btn.disabled = false; btn.textContent = '✨ Ajută-mă cu AI';
+    toast('ok','Conținut generat de AI!');
+  }).catch(function(e) {
+    btn.disabled = false; btn.textContent = '✨ Ajută-mă cu AI';
+    toast('err','Eroare AI: ' + e.message);
+  });
+}
+
+function offerAISolution() {
+  var s = getSets();
+  if (!s.apiKey || s.apiKey.indexOf('sk-ant-') !== 0) { toast('warn','Configurează API key în Setări'); return; }
+  var needs = document.getElementById('off-needs').value;
+  var products = PL.rows.map(function(r){return r.name;}).join(', ');
+  var btn = document.getElementById('btn-ai-sol');
+  btn.disabled = true; btn.textContent = '⏳ Generează...';
+  
+  var prompt = 'Ești un consultant IT senior la Brinel/iQanto. Generează conținut pentru slide-ul "Soluția Propusă" dintr-o ofertă IT.
+'
+    + 'Nevoia clientului: ' + (needs||'modernizare infrastructură IT') + '
+'
+    + 'Produse propuse: ' + (products||'soluții IT') + '
+'
+    + 'Generează:
+1. ABORDARE: 5-6 pași metodologici scurți (câte un punct pe linie)
+2. BENEFICII: 5-6 beneficii cheie pentru client (câte un punct pe linie)
+'
+    + 'Format exact:
+ABORDARE:
+<pas1>
+<pas2>
+...
+BENEFICII:
+<beneficiu1>
+<beneficiu2>
+...';
+  
+  fetch('/api/claude', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({model:s.model||'claude-sonnet-4-20250514', max_tokens:600, messages:[{role:'user',content:prompt}]})
+  }).then(function(r){return r.json();}).then(function(data) {
+    var text = data.content[0].text;
+    var abMatch = text.match(/ABORDARE:\s*([\s\S]+?)(?:
+BENEFICII:)/);
+    var benMatch = text.match(/BENEFICII:\s*([\s\S]+)/);
+    if (abMatch) document.getElementById('off-approach').value = abMatch[1].trim();
+    if (benMatch) document.getElementById('off-benefits').value = benMatch[1].trim();
+    btn.disabled = false; btn.textContent = '✨ Generează cu AI';
+    toast('ok','Soluție generată de AI!');
+  }).catch(function(e) {
+    btn.disabled = false; btn.textContent = '✨ Generează cu AI';
+    toast('err','Eroare AI: ' + e.message);
+  });
+}
+
+function offerBuildSummary() {
+  var client = document.getElementById('off-client').value || '—';
+  var nr = document.getElementById('off-nr').value || '—';
+  var date = document.getElementById('off-date').value || '—';
+  var total = PL.rows.reduce(function(s,r){return s + (parseFloat(r.sellPrice)||0);}, 0);
+  var currency = PL.currency || 'EUR';
+  var template = OFFER.templateName || 'Niciun template';
+  var keepCount = OFFER.selectedSlides.length;
+  var aiSlides = [];
+  if (document.getElementById('off-needs').value) aiSlides.push('Înțelegerea Cerințelor');
+  if (document.getElementById('off-approach').value || document.getElementById('off-benefits').value) aiSlides.push('Soluția Propusă');
+  if (document.getElementById('off-timeline').value) aiSlides.push('Plan Implementare');
+  if (document.getElementById('off-team').value) aiSlides.push('Echipa Dedicată');
+  if (PL.rows.length) aiSlides.push('Propunere Comercială');
+  aiSlides.push('Termeni & Assumptions');
+  
+  document.getElementById('offer-summary').innerHTML = 
+    '<b>Client:</b> ' + client + '&nbsp;&nbsp;|&nbsp;&nbsp;<b>Ofertă nr:</b> ' + nr + '&nbsp;&nbsp;|&nbsp;&nbsp;<b>Data:</b> ' + date + '<br>'
+    + '<b>Template:</b> ' + template + ' (' + keepCount + ' slide-uri din template selectate)<br>'
+    + '<b>Slide-uri AI generate:</b> ' + aiSlides.join(', ') + '<br>'
+    + '<b>Total P&L:</b> ' + total.toLocaleString('ro-RO', {minimumFractionDigits:2}) + ' ' + currency + '<br>'
+    + '<b>Total slide-uri în ofertă:</b> ' + (keepCount + aiSlides.length);
+  
+  // Update AI slides preview
+  var prev = document.getElementById('offer-ai-slides-preview');
+  if (prev) {
+    prev.innerHTML = aiSlides.map(function(s) {
+      return '<span class="badge-slide">' + s + '</span>';
+    }).join('');
+  }
+  document.getElementById('btn-final-gen').disabled = !OFFER.templateB64;
+}
+
+function offerGenerate() {
+  if (!OFFER.templateB64) { toast('warn','Încarcă template PPTX în Pasul 1'); offerGoStep(1); return; }
+  var s = getSets();
+  
+  var statusDiv = document.getElementById('offer-gen-status');
+  var iconEl = document.getElementById('offer-gen-icon');
+  var msgEl = document.getElementById('offer-gen-msg');
+  var subEl = document.getElementById('offer-gen-sub');
+  var btn = document.getElementById('btn-final-gen');
+  
+  statusDiv.style.display = '';
+  iconEl.textContent = '⚡';
+  msgEl.textContent = 'Se generează PPTX...';
+  subEl.textContent = 'Procesare template și construire slide-uri';
+  btn.disabled = true;
+  
+  var payload = {
+    template: OFFER.templateB64,
+    keepSlides: OFFER.selectedSlides.sort(function(a,b){return a-b;}),
+    offer: {
+      clientName: document.getElementById('off-client').value,
+      clientNeeds: document.getElementById('off-needs').value,
+      challenges: (document.getElementById('off-challenges').value||'').split('\n').filter(Boolean),
+      approach: document.getElementById('off-approach').value,
+      solution: document.getElementById('off-benefits').value,
+      timeline: document.getElementById('off-timeline').value,
+      team: document.getElementById('off-team').value,
+      assumptions: (document.getElementById('off-assumptions').value||'').split('\n').filter(Boolean)
+    },
+    pl: {
+      currency: PL.currency || 'EUR',
+      rows: PL.rows
+    },
+    settings: {
+      validity: document.getElementById('off-validity').value,
+      payment: document.getElementById('off-payment').value,
+      termsDelivery: document.getElementById('off-delivery').value,
+      termsWarranty: document.getElementById('off-warranty').value
+    }
+  };
+  
+  fetch('/api/generate-pptx', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e){throw new Error(e.error||'Server error');});
+    return r.json();
+  }).then(function(data) {
+    if (!data.pptx) throw new Error('Nu s-a returnat PPTX');
+    // Download
+    var bytes = atob(data.pptx);
+    var arr = new Uint8Array(bytes.length);
+    for (var i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+    var blob = new Blob([arr], {type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var client = (document.getElementById('off-client').value||'Oferta').replace(/[^a-zA-Z0-9]/g,'_');
+    var nr = document.getElementById('off-nr').value || new Date().toISOString().slice(0,10);
+    a.href = url; a.download = 'Oferta_' + client + '_' + nr + '.pptx'; a.click();
+    URL.revokeObjectURL(url);
+    iconEl.textContent = '✅';
+    msgEl.textContent = 'PPTX generat cu succes!';
+    subEl.textContent = 'Fișierul a fost descărcat';
+    btn.disabled = false;
+    toast('ok','Ofertă PPTX generată și descărcată!');
+  }).catch(function(err) {
+    iconEl.textContent = '❌';
+    msgEl.textContent = 'Eroare la generare';
+    subEl.textContent = err.message;
+    btn.disabled = false;
+    toast('err','Eroare: ' + err.message);
+  });
+}
+
 </script>
 </body>
 </html>
