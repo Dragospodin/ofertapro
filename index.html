@@ -691,14 +691,14 @@ function processFile(file) {
       doc.rawText = txt; doc.status = 'extracted'; renderDocs();
       toast('ok', 'Text extras: ' + file.name);
       var s = getSets();
-      if (s.apiKey && s.apiKey.indexOf('sk-ant-') === 0) { aiExtract(doc, s.apiKey, s.model); }
+      if (s.apiKey && s.apiKey && s.apiKey.length > 10) { aiExtract(doc, s.apiKey, s.model); }
       else { doc.products = basicParse(doc.rawText); doc.status = 'ready'; renderDocs(); }
     }).catch(function(err) { doc.status = 'error'; doc.error = err.message; renderDocs(); toast('err', 'Eroare PDF: ' + err.message); });
   } else {
     readTXT(file).then(function(txt) {
       doc.rawText = txt; doc.status = 'extracted';
       var s = getSets();
-      if (s.apiKey && s.apiKey.indexOf('sk-ant-') === 0) { aiExtract(doc, s.apiKey, s.model); }
+      if (s.apiKey && s.apiKey && s.apiKey.length > 10) { aiExtract(doc, s.apiKey, s.model); }
       else { doc.products = basicParse(doc.rawText); doc.status = 'ready'; renderDocs(); }
     }).catch(function(err) { doc.status = 'error'; doc.error = err.message; renderDocs(); });
   }
@@ -967,7 +967,7 @@ function readXLSX(file, doc) {
     } else {
       // Generic - trimite la AI
       var s = getSets();
-      if (s.apiKey && s.apiKey.indexOf('sk-ant-') === 0) {
+      if (s.apiKey && s.apiKey && s.apiKey.length > 10) {
         aiExtract(doc, s.apiKey, s.model);
       } else {
         doc.products = basicParse(doc.rawText);
@@ -1509,7 +1509,7 @@ function offerLoadPL() {
 
 function offerAINeeds() {
   var s = getSets();
-  if (!s.apiKey || s.apiKey.indexOf('sk-ant-') !== 0) { toast('warn','Configurează API key în Setări'); return; }
+  if (!s.apiKey || s.apiKey.length < 10) { toast('warn','Configurează API key în Setări'); return; }
   var client = document.getElementById('off-client').value;
   var products = PL.rows.map(function(r){return r.name;}).join(', ');
   if (!client && !products) { toast('warn','Completează numele clientului sau încarcă P&L'); return; }
@@ -1523,6 +1523,7 @@ function offerAINeeds() {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({model:s.model||'claude-sonnet-4-20250514', max_tokens:600, messages:[{role:'user',content:prompt}]})
   }).then(function(r){return r.json();}).then(function(data) {
+    if (!data || !data.content || !data.content[0]) { throw new Error(data.error ? data.error.message : 'API error'); }
     var text = data.content[0].text;
     var paragMatch = text.match(/PARAGRAF:\s*([\s\S]+?)(?=PROVOCARI:|PROVOCĂRI:|$)/i);
     var provMatch = text.match(/PROVOCARI:|PROVOCĂRI:[\s\S]*(\n[\s\S]+)/i);
@@ -1538,7 +1539,7 @@ function offerAINeeds() {
 
 function offerAISolution() {
   var s = getSets();
-  if (!s.apiKey || s.apiKey.indexOf('sk-ant-') !== 0) { toast('warn','Configurează API key în Setări'); return; }
+  if (!s.apiKey || s.apiKey.length < 10) { toast('warn','Configurează API key în Setări'); return; }
   var needs = document.getElementById('off-needs').value;
   var products = PL.rows.map(function(r){return r.name;}).join(', ');
   var btn = document.getElementById('btn-ai-sol');
@@ -1550,6 +1551,7 @@ function offerAISolution() {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({model:s.model||'claude-sonnet-4-20250514', max_tokens:600, messages:[{role:'user',content:prompt}]})
   }).then(function(r){return r.json();}).then(function(data) {
+    if (!data || !data.content || !data.content[0]) { throw new Error(data.error ? data.error.message : 'API error'); }
     var text = data.content[0].text;
     var abMatch = text.match(/ABORDARE:[\s\S]+?(?=BENEFICII:|$)/i);
     if (abMatch) document.getElementById('off-approach').value = abMatch[1].trim();
@@ -2044,7 +2046,16 @@ async function offerGenerate() {
         if (n > maxRid) maxRid = n;
       });
       // Remove slide relationships from template rels
-      var baseRels = tplPresRelsText.replace(/<Relationship[^>]*slide[^>]*\/>/g,'').replace(/<Relationship[^>]*slide[^\/]*\/Relationship>/g,'');
+      // If template rels empty, use PPTX_STATIC base rels
+      if (!tplPresRelsText) {
+        try { tplPresRelsText = atob(PPTX_STATIC['ppt/_rels/presentation.xml.rels']||''); } catch(e) {}
+      }
+      var baseRels = tplPresRelsText.replace(/<Relationship[^>]*\/ppt\/slides\/[^>]*\/>/g,'').replace(/<Relationship[^>]*slides\/slide[^<]*<\/Relationship>/g,'');
+      // Ensure baseRels has closing tag
+      if (!baseRels.includes('</Relationships>')) {
+        baseRels = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'><Relationship Id='rId1' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster' Target='slideMasters/slideMaster1.xml'/><Relationship Id='rId2' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/printerSettings' Target='printerSettings/printerSettings1.bin'/><Relationship Id='rId3' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps' Target='presProps.xml'/><Relationship Id='rId4' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/viewProps' Target='viewProps.xml'/><Relationship Id='rId5' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme' Target='theme/theme1.xml'/><Relationship Id='rId6' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles' Target='tableStyles.xml'/></Relationships>";
+        maxRid = 6;
+      }
 
       var slideRelEntries = '';
       for (var si=1; si<=totalSlides; si++) {
@@ -2055,6 +2066,7 @@ async function offerGenerate() {
       // Rebuild rels file
       var newPresRels = baseRels.replace('</Relationships>', slideRelEntries + '</Relationships>');
       outFiles['ppt/_rels/presentation.xml.rels'] = {text: newPresRels};
+      console.log('presRels built:', newPresRels.slice(0,200));
 
       // Build new presentation.xml sldIdLst
       var sldIdLst = '';
@@ -2147,6 +2159,7 @@ async function readZipFiles(b64) {
   var view = new DataView(bytes.buffer);
   var files = {};
   var i = 0;
+  console.log('ZIP bytes length:', bytes.length);
 
   while (i < bytes.length - 4) {
     var sig = view.getUint32(i, true);
@@ -2173,6 +2186,7 @@ async function readZipFiles(b64) {
       if (isXmlOrText) {
         try {
           files[name] = {text: new TextDecoder('utf-8', {fatal:true}).decode(raw)};
+          console.log('Parsed:', name, raw.length, 'bytes');
         } catch(e) {
           var bin2=''; for(var k=0;k<raw.length;k++) bin2+=String.fromCharCode(raw[k]);
           files[name] = {b64: btoa(bin2)};
