@@ -2,10 +2,6 @@
   "functions": {
     "api/claude.js": {
       "runtime": "nodejs20.x"
-    },
-    "api/generate-pptx.py": {
-      "runtime": "python3.12",
-      "maxDuration": 30
     }
   }
 }
