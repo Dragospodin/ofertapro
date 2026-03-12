@@ -1638,7 +1638,7 @@ function offerMakePptx() {
   function makePara(line, fontSize, bold, color) {
     if (!String(line).trim()) return "<a:p/>";
     return "<a:p><a:r>"
-      + "<a:rPr lang=\"ro-RO\" sz=\"" + Math.round(fontSize*100) + "\" b=\"" + (bold?"1":"0") + "\" dirty=\"0\">"
+      + "<a:rPr lang=\"ro-RO\" altLang=\"en-US\" sz=\"" + Math.round(fontSize*100) + "\" b=\"" + (bold?"1":"0") + "\" dirty=\"0\">"
       + "<a:solidFill><a:srgbClr val=\"" + color + "\"/></a:solidFill>"
       + "<a:latin typeface=\"Century Gothic\"/></a:rPr>"
       + "<a:t>" + xmlEsc(line) + "</a:t>"
