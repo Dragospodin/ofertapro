@@ -1899,7 +1899,7 @@ async function offerGenerate() {
   msgEl.textContent = 'Se generează PPTX...'; subEl.textContent = 'Citire template...';
   btn.disabled = true;
 
-  setTimeout(function() {
+  setTimeout(async function() {
     try {
       var currency = PL.currency || 'EUR';
 
@@ -1943,10 +1943,10 @@ async function offerGenerate() {
         outFiles['ppt/slides/_rels/slide'+outNum+'.xml.rels'] = outRels;
         // Copy any media referenced by this slide
         var relsText = outRels.text || '';
-        var mediaRefs = relsText.match(/Target="\.\.\/media\/[^"]+"/g) || [];
+        var mediaRefs = relsText.match(/Target="[^"]*\/media\/[^"]+"/g) || [];
         mediaRefs.forEach(function(ref) {
-          var mname = ref.replace('Target="../', 'ppt/');
-          mname = mname.replace('"', '');
+          var mname = ref.replace('Target="../', 'ppt/').replace(/"$/, '');
+          
           if (templateFiles[mname]) outFiles[mname] = templateFiles[mname];
         });
       });
@@ -2083,7 +2083,7 @@ async function offerGenerate() {
       var tplCT = templateFiles['[Content_Types].xml'];
       var tplCTText = tplCT ? (tplCT.text || '') : '';
       // Remove old slide overrides
-      var baseCT = tplCTText.replace(/<Override PartName="\/ppt\/slides\/slide[^"]*"[^\/]*\/>/g,'');
+      var baseCT = tplCTText.replace(/<Override[^>]*\/ppt\/slides\/slide[^>]*\/>/g,'');
       var slideOverrides = '';
       for (var si3=1; si3<=totalSlides; si3++) {
         slideOverrides += '<Override PartName="/ppt/slides/slide'+si3+'.xml" '
