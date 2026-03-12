@@ -1722,13 +1722,8 @@ function offerMakePptx() {
   }
 
   function buildPPTX() {
-    var sc = slides.length;
+    // Returns ONLY slide files - static files come from template or PPTX_STATIC
     var files = {};
-
-    // Copy all static files (pre-validated by python-pptx)
-    Object.keys(PPTX_STATIC).forEach(function(name) {
-      files[name] = {b64: PPTX_STATIC[name]};
-    });
 
     // Generate dynamic presentation.xml
     var sldIds = slides.map(function(_,i){
@@ -1902,23 +1897,32 @@ async function offerGenerate() {
   setTimeout(async function() {
     try {
       var currency = PL.currency || 'EUR';
+      console.log('Step 1: Parsing template ZIP...');
 
       // ── 1. Parse template ZIP ──────────────────────────────────────────
       var templateFiles = await readZipFiles(OFFER.templateB64);
+      console.log('Template files parsed:', Object.keys(templateFiles).length, Object.keys(templateFiles).slice(0,5));
 
       // ── 2. Get selected slide indices from OFFER.selectedSlides ────────
       var selectedSlides = OFFER.selectedSlides || [];
 
-      // ── 3. Build new file map starting from template static files ──────
+      // ── 3. Build new file map: start with PPTX_STATIC then overlay template ─
       var outFiles = {};
 
-      // Copy all non-slide, non-presentation files from template
+      // Start with known-good static files
+      Object.keys(PPTX_STATIC).forEach(function(name) {
+        outFiles[name] = {b64: PPTX_STATIC[name]};
+      });
+
+      // Overlay with template files (non-slides) - keeps template theme/master/layouts
       Object.keys(templateFiles).forEach(function(name) {
-        var skip = /^ppt\/slides\/slide\d/.test(name)
+        var skip = /^ppt\/slides\/slide/.test(name)
                 || name === 'ppt/presentation.xml'
                 || name === 'ppt/_rels/presentation.xml.rels'
                 || name === '[Content_Types].xml';
-        if (!skip) outFiles[name] = templateFiles[name];
+        if (!skip && templateFiles[name] && !templateFiles[name].compressed) {
+          outFiles[name] = templateFiles[name];
+        }
       });
 
       // ── 4. Copy selected template slides ───────────────────────────────
@@ -2091,7 +2095,9 @@ async function offerGenerate() {
       }
       outFiles['[Content_Types].xml'] = {text: baseCT.replace('</Types>', slideOverrides+'</Types>')};
 
-      // ── 9. Build ZIP and download ──────────────────────────────────────
+      // ── 9. Build ZIP and download
+      console.log('Total slides:', totalSlides, 'outFiles:', Object.keys(outFiles).length);
+      console.log('Files:', Object.keys(outFiles).slice(0,10)); ──────────────────────────────────────
       var blob = buildZipBlob(outFiles);
       var client=(document.getElementById('off-client').value||'Oferta').replace(/[^a-zA-Z0-9]/g,'_');
       var nr=document.getElementById('off-nr').value||new Date().toISOString().slice(0,10);
