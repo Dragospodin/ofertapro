@@ -1725,21 +1725,21 @@ function offerGenerate() {
       // 3. Slide: Solutie
       var approach = (document.getElementById('off-approach').value||'').split('\n').filter(Boolean);
       var benefits = (document.getElementById('off-benefits').value||'').split('\n').filter(Boolean);
+      if (approach.length || benefits.length) {
+        builder.addTwoColSlide('Solutia Propusa', 'Abordare', approach.slice(0,7), 'Beneficii', benefits.slice(0,7));
       }
 
       // 4. Slide: Timeline
       var tl = document.getElementById('off-timeline').value;
       if (tl.trim()) {
-        var tlItems = tl.split('
-').filter(Boolean).map(function(t){return {text:t,size:13,space:7};});
+        var tlItems = tl.split('\n').filter(Boolean).map(function(t){return {text:t,size:13,space:7};});
         builder.addSlide('Plan de Implementare', tlItems);
       }
 
       // 5. Slide: Echipa
       var team = document.getElementById('off-team').value;
       if (team.trim()) {
-        var teamItems = team.split('
-').filter(Boolean).map(function(t){return {text:t,size:13,space:7};});
+        var teamItems = team.split('\n').filter(Boolean).map(function(t){return {text:t,size:13,space:7};});
         builder.addSlide('Echipa Dedicată', teamItems);
       }
 
@@ -1788,6 +1788,7 @@ function offerGenerate() {
       if (assumptions.length) {
         termItems.push({text:'Assumptions:', bold:true, size:13, space:8});
         assumptions.forEach(function(a){ termItems.push({text:'• '+a, size:12, space:5}); });
+      }
       builder.addSlide('Termeni Comerciali & Assumptions', termItems);
 
       // Export
