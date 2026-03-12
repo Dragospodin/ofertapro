@@ -1887,7 +1887,7 @@ function buildZipBlob(files) {
 }
 
 
-function offerGenerate() {
+async function offerGenerate() {
   if (!OFFER.templateB64) { toast('warn','Încarcă template PPTX în Pasul 1'); offerGoStep(1); return; }
 
   var statusDiv = document.getElementById('offer-gen-status');
@@ -1904,7 +1904,7 @@ function offerGenerate() {
       var currency = PL.currency || 'EUR';
 
       // ── 1. Parse template ZIP ──────────────────────────────────────────
-      var templateFiles = readZipFiles(OFFER.templateB64);
+      var templateFiles = await readZipFiles(OFFER.templateB64);
 
       // ── 2. Get selected slide indices from OFFER.selectedSlides ────────
       var selectedSlides = OFFER.selectedSlides || [];
@@ -2113,55 +2113,76 @@ function offerGenerate() {
   }, 100);
 }
 
-// Parse a PPTX (base64) into a file map {name: {text|b64}}
-function readZipFiles(b64) {
-  function b64ToBytes(b64str) {
-    var bin=atob(b64str), bytes=new Uint8Array(bin.length);
-    for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    return bytes;
+// Parse a PPTX (base64) into a file map {name: {text|b64}} - async with Deflate support
+async function readZipFiles(b64) {
+  function b64ToBytes(s) {
+    var bin=atob(s), out=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
+    return out;
+  }
+
+  async function inflate(compressedBytes) {
+    if (typeof DecompressionStream !== 'undefined') {
+      var ds = new DecompressionStream('deflate-raw');
+      var writer = ds.writable.getWriter();
+      var reader = ds.readable.getReader();
+      writer.write(compressedBytes);
+      writer.close();
+      var chunks = [], totalLen = 0;
+      while (true) {
+        var r = await reader.read();
+        if (r.done) break;
+        chunks.push(r.value);
+        totalLen += r.value.length;
+      }
+      var out = new Uint8Array(totalLen), off = 0;
+      chunks.forEach(function(c){ out.set(c, off); off += c.length; });
+      return out;
+    }
+    throw new Error('DecompressionStream not available');
   }
 
   var bytes = b64ToBytes(b64);
   var view = new DataView(bytes.buffer);
   var files = {};
-
-  // Parse ZIP local file headers
   var i = 0;
+
   while (i < bytes.length - 4) {
     var sig = view.getUint32(i, true);
-    if (sig === 0x04034B50) { // Local file header
-      var nameLen = view.getUint16(i+26, true);
-      var extraLen = view.getUint16(i+28, true);
-      var compSize = view.getUint32(i+18, true);
-      var compMethod = view.getUint16(i+8, true);
-      var nameBytes = bytes.slice(i+30, i+30+nameLen);
-      var name = new TextDecoder().decode(nameBytes);
-      var dataStart = i+30+nameLen+extraLen;
-      var dataBytes = bytes.slice(dataStart, dataStart+compSize);
+    if (sig === 0x04034B50) {
+      var compMethod  = view.getUint16(i+8,  true);
+      var compSize    = view.getUint32(i+18, true);
+      var uncompSize  = view.getUint32(i+22, true);
+      var nameLen     = view.getUint16(i+26, true);
+      var extraLen    = view.getUint16(i+28, true);
+      var nameBytes   = bytes.slice(i+30, i+30+nameLen);
+      var name        = new TextDecoder().decode(nameBytes);
+      var dataStart   = i+30+nameLen+extraLen;
+      var dataBytes   = bytes.slice(dataStart, dataStart+compSize);
 
-      if (compMethod === 0) { // Stored (no compression)
-        // Try to decode as text
+      var raw;
+      if (compMethod === 8) {
+        raw = await inflate(dataBytes);
+      } else {
+        raw = dataBytes;
+      }
+
+      // Try UTF-8 text
+      var isXmlOrText = /\.(xml|rels|txt)$/.test(name);
+      if (isXmlOrText) {
         try {
-          var text = new TextDecoder('utf-8', {fatal:true}).decode(dataBytes);
-          files[name] = {text: text};
+          files[name] = {text: new TextDecoder('utf-8', {fatal:true}).decode(raw)};
         } catch(e) {
-          // Binary file - store as base64
-          var bin2 = '';
-          for(var k=0;k<dataBytes.length;k++) bin2+=String.fromCharCode(dataBytes[k]);
+          var bin2=''; for(var k=0;k<raw.length;k++) bin2+=String.fromCharCode(raw[k]);
           files[name] = {b64: btoa(bin2)};
         }
-      } else if (compMethod === 8) { // Deflate
-        // Use DecompressionStream if available
-        try {
-          // Store compressed for now - will decompress async
-          files[name] = {compressed: dataBytes, method: 8};
-        } catch(e) {
-          files[name] = {b64: btoa(String.fromCharCode.apply(null, dataBytes))};
-        }
+      } else {
+        var bin3=''; for(var k=0;k<raw.length;k++) bin3+=String.fromCharCode(raw[k]);
+        files[name] = {b64: btoa(bin3)};
       }
       i = dataStart + compSize;
     } else if (sig === 0x02014B50 || sig === 0x06054B50) {
-      break; // Central directory or EOCD - stop
+      break;
     } else {
       i++;
     }
