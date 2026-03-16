@@ -2103,7 +2103,15 @@ async function offerGenerate() {
         slideOverrides += '<Override PartName="/ppt/slides/slide'+si3+'.xml" '
           + 'ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>';
       }
-      outFiles['[Content_Types].xml'] = {text: baseCT.replace('</Types>', slideOverrides+'</Types>')};
+      var finalCT = baseCT.replace('</Types>', slideOverrides+'</Types>');
+      // Ensure 'bin' Default exists for printerSettings
+      if (finalCT.indexOf('Extension="bin"') < 0) {
+        finalCT = finalCT.replace('<Types ', '<Types ').replace(
+          'xmlns="http://schemas.openxmlformats.org/package/2006/content-types">',
+          'xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="bin" ContentType="application/vnd.openxmlformats-officedocument.presentationml.printerSettings"/>'
+        );
+      }
+      outFiles['[Content_Types].xml'] = {text: finalCT};
 
       // -- 9. Build ZIP and download
       var blob = buildZipBlob(outFiles);
